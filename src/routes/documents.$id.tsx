@@ -27,6 +27,7 @@ import { useAuthors, useDeleteDocument, useDocument, useDocuments } from "@/serv
 import { getFile } from "@/services/store";
 import { authorStyle, suggestFor } from "@/lib/suggestions";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/lib/platform";
 
 const TABS = [
   { id: "origem", label: "Origem" },
@@ -103,7 +104,7 @@ function DocumentPage() {
       toast.error("Ficheiro não disponível neste navegador");
       return;
     }
-    download(b, version.fileName, a.mime === "image/*" ? "application/octet-stream" : a.mime);
+    void download(b, version.fileName, a.mime === "image/*" ? "application/octet-stream" : a.mime);
   };
 
   return (
@@ -176,13 +177,17 @@ function DocumentPage() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-danger focus:text-danger [&_svg]:!text-danger"
-                onSelect={async () => {
-                  if (!confirm(`Remover "${doc.name}" e as ${doc.versions.length} versões?`))
-                    return;
-                  await del.mutateAsync(doc.id);
-                  toast.success("Documento removido");
-                  void navigate({ to: "/documents" });
-                }}
+                onSelect={() =>
+                  confirmAction(
+                    `Remover "${doc.name}" e as ${doc.versions.length} versões?`,
+                    "Remover",
+                    async () => {
+                      await del.mutateAsync(doc.id);
+                      toast.success("Documento removido");
+                      void navigate({ to: "/documents" });
+                    },
+                  )
+                }
               >
                 <Trash2 /> Remover documento
               </DropdownMenuItem>

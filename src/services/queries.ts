@@ -6,6 +6,9 @@ import type { AppSettings, IdentityProfile } from "@/types/domain";
 let seeding: Promise<void> | null = null;
 /** Seeds demo data once per browser; every query awaits it so screens never flash empty. */
 export const ensureSeed = () => (seeding ??= seedDemo().catch((e) => console.error(e)));
+export const resetSeed = () => {
+  seeding = null;
+};
 
 export const qk = {
   docs: ["docs"] as const,

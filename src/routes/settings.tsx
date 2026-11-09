@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSaveSettings, useSettings } from "@/services/queries";
+import { resetSeed, useSaveSettings, useSettings } from "@/services/queries";
+import { useQueryClient } from "@tanstack/react-query";
+import { confirmAction } from "@/lib/platform";
 import { resetAll } from "@/services/store";
 import type { AppSettings } from "@/types/domain";
 
@@ -39,6 +41,7 @@ function Row({
 function SettingsPage() {
   const { data } = useSettings();
   const save = useSaveSettings();
+  const qc = useQueryClient();
   const [s, setS] = useState<AppSettings | null>(null);
   useEffect(() => {
     if (data) setS(structuredClone(data));
@@ -176,11 +179,18 @@ function SettingsPage() {
           <Button
             variant="outline"
             className="text-danger hover:text-danger md:float-right"
-            onClick={async () => {
-              if (!confirm("Apagar todos os dados locais e repor a demonstração?")) return;
-              await resetAll();
-              location.reload();
-            }}
+            onClick={() =>
+              confirmAction(
+                "Apagar todos os dados locais e repor a demonstração?",
+                "Repor",
+                async () => {
+                  await resetAll();
+                  resetSeed();
+                  await qc.invalidateQueries();
+                  toast.success("Dados de demonstração repostos");
+                },
+              )
+            }
           >
             <RotateCcw /> Repor
           </Button>

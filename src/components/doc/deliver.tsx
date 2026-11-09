@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { SecurityBadge, VerdictBadge } from "@/components/app/status";
 import { DiffTable, metadataDiff } from "./panels";
 import { cn } from "@/lib/utils";
+import { saveFile } from "@/lib/platform";
 
 type Result = {
   bytes: Uint8Array;
@@ -27,16 +28,8 @@ type Result = {
   versionN: number;
 };
 
-export function download(bytes: Uint8Array, name: string, mime: string) {
-  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mime }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
+export const download = (bytes: Uint8Array, name: string, mime: string) =>
+  saveFile(bytes, name, mime);
 
 export function DeliverPanel({ doc, version }: { doc: DocumentRecord; version: DocVersion }) {
   const { data: profiles = [] } = useProfiles();
@@ -99,7 +92,7 @@ export function DeliverPanel({ doc, version }: { doc: DocumentRecord; version: D
       });
       await qc.invalidateQueries();
       setResult({ ...out, before: a, after: res.version, versionN: res.version.n });
-      download(out.bytes, out.fileName, out.mime);
+      void download(out.bytes, out.fileName, out.mime);
       toast.success("Ficheiro gerado", {
         description: `${out.fileName} · guardado como versão ${res.version.n}`,
       });
@@ -153,7 +146,7 @@ export function DeliverPanel({ doc, version }: { doc: DocumentRecord; version: D
               {result.fileName} foi descarregado e guardado como versão {result.versionN}.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button onClick={() => download(result.bytes, result.fileName, result.mime)}>
+              <Button onClick={() => void download(result.bytes, result.fileName, result.mime)}>
                 <Download /> Descarregar de novo
               </Button>
               <Button variant="outline" onClick={() => setResult(null)}>

@@ -18,13 +18,34 @@ import { uid } from "@/lib/format";
 const db = typeof indexedDB !== "undefined" ? createStore("docqc", "kv") : undefined;
 const mem = new Map<string, unknown>();
 
+// IndexedDB can be blocked (private windows, sandboxed frames): fall back to memory for the session.
+let dbOk = !!db;
 async function read<T>(key: string, fallback: T): Promise<T> {
-  if (!db) return (mem.get(key) as T) ?? fallback;
-  return ((await get(key, db)) as T | undefined) ?? fallback;
+  if (dbOk && db)
+    try {
+      return ((await get(key, db)) as T | undefined) ?? fallback;
+    } catch {
+      dbOk = false;
+    }
+  return (mem.get(key) as T) ?? fallback;
 }
 async function write(key: string, value: unknown) {
-  if (!db) return void mem.set(key, value);
-  await set(key, value, db);
+  if (dbOk && db)
+    try {
+      return void (await set(key, value, db));
+    } catch {
+      dbOk = false;
+    }
+  mem.set(key, value);
+}
+async function remove(key: string) {
+  mem.delete(key);
+  if (dbOk && db)
+    try {
+      await del(key, db);
+    } catch {
+      dbOk = false;
+    }
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -67,10 +88,7 @@ export async function deleteDocument(id: string) {
 
 export const saveFile = (versionId: string, bytes: Uint8Array) => write(`file:${versionId}`, bytes);
 export const getFile = (versionId: string) => read<Uint8Array | null>(`file:${versionId}`, null);
-const deleteFile = async (versionId: string) => {
-  if (db) await del(`file:${versionId}`, db);
-  else mem.delete(`file:${versionId}`);
-};
+const deleteFile = (versionId: string) => remove(`file:${versionId}`);
 
 /* ------------------------------------------ Versioning --------------------------------------- */
 
@@ -232,7 +250,6 @@ export async function resetAll() {
   const docs = await read<DocumentRecord[]>("docs", []);
   for (const d of docs) for (const v of d.versions) await deleteFile(v.id);
   for (const k of ["docs", "authors", "profiles", "settings", "seeded"]) {
-    if (db) await del(k, db);
-    else mem.delete(k);
+    await remove(k);
   }
 }

@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:spa": "vite build -c vite.spa.config.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -71,6 +72,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5",
+    "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^4.1.10"
   }
 }

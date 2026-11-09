@@ -5,6 +5,7 @@ import { getFile } from "@/services/store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KindIcon } from "@/components/app/status";
 import { kindLabel } from "@/lib/format";
+import { setupPdfWorker } from "@/lib/pdf-worker";
 
 /**
  * First-page preview. PDFs are rendered with pdf.js with scripting disabled (it never executes
@@ -60,8 +61,7 @@ function PdfCanvas({ bytes }: { bytes: Uint8Array }) {
     (async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
-        const worker = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-        pdfjs.GlobalWorkerOptions.workerSrc = worker;
+        await setupPdfWorker(pdfjs);
         const task = pdfjs.getDocument({ data: bytes.slice(), enableXfa: false });
         const doc = await task.promise;
         const page = await doc.getPage(1);
