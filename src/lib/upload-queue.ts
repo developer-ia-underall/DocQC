@@ -3,6 +3,7 @@ import { analyzeBytes, readFile, type Stage } from "@/lib/analysis";
 import { AnalysisError } from "@/lib/analysis/common";
 import * as store from "@/services/store";
 import { ensureSeed } from "@/services/queries";
+import { uploaderName } from "@/services/identities";
 import { uid } from "@/lib/format";
 import type { AnalysisResult } from "@/types/domain";
 
@@ -132,7 +133,7 @@ async function process(id: string) {
       hash: out.hash,
       bytes,
       analysis: out.analysis,
-      uploadedBy: (await store.listProfiles())[0]?.fullName ?? "Utilizador",
+      uploadedBy: await uploaderName(),
     });
     patch(id, {
       stage: "done",

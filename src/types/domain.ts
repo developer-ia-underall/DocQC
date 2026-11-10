@@ -86,6 +86,29 @@ export interface IdentityProfile {
   company: string;
   timezone: string;
   createdAt: string;
+  /** Conta dona da identidade (só com Supabase). */
+  ownerId?: string | undefined;
+  ownerName?: string | undefined;
+  ownerEmail?: string | undefined;
+  /** Ao criar, a pessoa estava no próprio computador. */
+  ownDevice?: boolean | undefined;
+  /** O que foi lido automaticamente do computador quando foi criada. */
+  detected?: DeviceInfo | null | undefined;
+}
+
+export interface DeviceInfo {
+  os: string;
+  /** "Windows", "macOS", "Linux", "ChromeOS", "Android", "iOS" ou "" */
+  platform: string;
+  architecture: string;
+  browser: string;
+  timezone: string;
+  language: string;
+  screen: string;
+  cpuCores: number | null;
+  memoryGb: number | null;
+  /** Fonte da versão do sistema: "client-hints" é exata; "user-agent" é aproximada. */
+  source: "client-hints" | "user-agent";
 }
 
 export interface Author {

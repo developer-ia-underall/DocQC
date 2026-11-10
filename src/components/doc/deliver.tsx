@@ -6,6 +6,8 @@ import { ArrowRight, Download, Fingerprint, Loader2, Monitor, Plus, Wand2 } from
 import { toast } from "sonner";
 import type { DocumentRecord, DocVersion, IdentityProfile, RewriteOptions } from "@/types/domain";
 import { useProfiles, useSettings } from "@/services/queries";
+import { identityAccess } from "@/services/identities";
+import { useAuth } from "@/lib/auth/context";
 import * as store from "@/services/store";
 import { rewriteDocument } from "@/lib/rewrite";
 import { analyzeBytes } from "@/lib/analysis";
@@ -32,7 +34,17 @@ export const download = (bytes: Uint8Array, name: string, mime: string) =>
   saveFile(bytes, name, mime);
 
 export function DeliverPanel({ doc, version }: { doc: DocumentRecord; version: DocVersion }) {
-  const { data: profiles = [] } = useProfiles();
+  const { data: allProfiles = [] } = useProfiles();
+  const { session, profile: account } = useAuth();
+  // Assina-se com identidades próprias; o administrador pode usar qualquer uma.
+  // (O gestor vê as dos outros na página Identidades, mas não as usa para entregar.)
+  const profiles = useMemo(
+    () =>
+      allProfiles.filter(
+        (p) => identityAccess(p, { id: session?.user.id, role: account?.role }).canEdit,
+      ),
+    [allProfiles, session?.user.id, account?.role],
+  );
   const { data: settings } = useSettings();
   const qc = useQueryClient();
   const a = version.analysis;

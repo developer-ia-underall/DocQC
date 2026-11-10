@@ -39,6 +39,10 @@ Login sem palavra-passe: a pessoa escreve o e-mail e recebe **um código de 6 d�
 
 As regras vivem na base de dados (`supabase/migrations/`): RLS na tabela `profiles` e a função `set_user_role()`, que só aceita pedidos de administradores. Os documentos continuam no IndexedDB do navegador nesta fase.
 
+**Identidades** (tabela `identities`, com RLS): o utilizador vê e altera só as suas; o gestor vê as de todas as contas mas só altera e entrega com as suas; o administrador vê, altera e entrega com todas.
+
+**Guia de utilização**: abre sozinho no primeiro login (fica registado em `profiles.onboarded_at`) e pelo botão **?** no topo. Destaca cada zona da app e inclui a criação da identidade, pré-preenchida com os dados do computador (sistema, fuso, navegador; o nome do computador é sugerido, porque o navegador não o consegue ler).
+
 Sem `VITE_SUPABASE_URL` a app corre como antes, em modo local sem login (é assim que a build estática de testes funciona).
 
 ### Alojar nas máquinas próprias

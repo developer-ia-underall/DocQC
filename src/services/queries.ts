@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as store from "./store";
+import * as identities from "./identities";
 import { seedDemo } from "./seed";
 import type { AppSettings, IdentityProfile } from "@/types/domain";
 
@@ -33,7 +34,7 @@ export const useAuthors = () =>
 export const useProfiles = () =>
   useQuery({
     queryKey: qk.profiles,
-    queryFn: async () => (await ensureSeed(), store.listProfiles()),
+    queryFn: async () => (await ensureSeed(), identities.listIdentities()),
   });
 export const useSettings = () =>
   useQuery({
@@ -49,14 +50,14 @@ export function useInvalidateAll() {
 export function useSaveProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (p: IdentityProfile) => store.saveProfile(p),
+    mutationFn: (p: IdentityProfile) => identities.saveIdentity(p),
     onSuccess: () => qc.invalidateQueries(),
   });
 }
 export function useDeleteProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => store.deleteProfile(id),
+    mutationFn: (id: string) => identities.deleteIdentity(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.profiles }),
   });
 }
