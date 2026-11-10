@@ -1,6 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, GitBranch, MoreHorizontal, Trash2, FileQuestion, Sparkles } from "lucide-react";
+import {
+  Download,
+  GitBranch,
+  MoreHorizontal,
+  Trash2,
+  FileQuestion,
+  Sparkles,
+  Lock,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Page, EmptyState } from "@/components/app/page";
 import { KindIcon, SecurityBadge, VerdictBadge } from "@/components/app/status";
@@ -25,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthors, useDeleteDocument, useDocument, useDocuments } from "@/services/queries";
 import { getFile } from "@/services/store";
+import { useAuth } from "@/lib/auth/context";
 import { authorStyle, suggestFor } from "@/lib/suggestions";
 import { cn } from "@/lib/utils";
 import { confirmAction } from "@/lib/platform";
@@ -55,6 +65,7 @@ function DocumentPage() {
   const { data: authors = [] } = useAuthors();
   const { data: allDocs = [] } = useDocuments();
   const del = useDeleteDocument();
+  const { session, profile: account } = useAuth();
   const tab: Tab = search.tab ?? "origem";
   const setTab = (t: Tab) => void navigate({ search: (s) => ({ ...s, tab: t }), replace: true });
 
@@ -82,7 +93,7 @@ function DocumentPage() {
         <EmptyState
           icon={FileQuestion}
           title="Documento não encontrado"
-          body="Pode ter sido removido, ou foi carregado noutro navegador."
+          body="Pode ter sido removido, ou não tem acesso a ele."
           action={
             <Button asChild>
               <Link to="/documents">Ver documentos</Link>
@@ -93,6 +104,9 @@ function DocumentPage() {
     );
 
   const author = authors.find((a) => a.id === doc.authorId);
+  // Dono ou administrador gerem; o gestor vê os documentos dos outros só em leitura.
+  const mine = !doc.ownerId || doc.ownerId === session?.user.id;
+  const canManage = mine || account?.role === "admin";
   const a = version.analysis;
   const isLatest = version.id === latest?.id;
   const style = author ? authorStyle(allDocs.filter((d) => d.authorId === author.id)) : null;
@@ -101,7 +115,9 @@ function DocumentPage() {
   const downloadOriginal = async () => {
     const b = await getFile(version.id);
     if (!b) {
-      toast.error("Ficheiro não disponível neste navegador");
+      toast.error("Ficheiro não disponível", {
+        description: "Os documentos de demonstração não têm ficheiro guardado.",
+      });
       return;
     }
     void download(b, version.fileName, a.mime === "image/*" ? "application/octet-stream" : a.mime);
@@ -127,6 +143,12 @@ function DocumentPage() {
                 </Link>
               )}
               <VersionMeta v={version} />
+              {!mine && (
+                <span className="inline-flex items-center gap-1 rounded border border-border px-1.5 text-[11.5px] text-muted-foreground">
+                  <UserRound className="size-3" /> {doc.ownerName || doc.ownerEmail}
+                  {!canManage && <Lock className="size-3" aria-label="Só leitura" />}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -164,35 +186,37 @@ function DocumentPage() {
           <Button variant="outline" onClick={downloadOriginal}>
             <Download /> <span className="hidden sm:inline">Descarregar</span>
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Mais ações">
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setTab("entregar")}>
-                <Sparkles /> Entregar com identidade
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-danger focus:text-danger [&_svg]:!text-danger"
-                onSelect={() =>
-                  confirmAction(
-                    `Remover "${doc.name}" e as ${doc.versions.length} versões?`,
-                    "Remover",
-                    async () => {
-                      await del.mutateAsync(doc.id);
-                      toast.success("Documento removido");
-                      void navigate({ to: "/documents" });
-                    },
-                  )
-                }
-              >
-                <Trash2 /> Remover documento
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {canManage && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Mais ações">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setTab("entregar")}>
+                  <Sparkles /> Entregar com identidade
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-danger focus:text-danger [&_svg]:!text-danger"
+                  onSelect={() =>
+                    confirmAction(
+                      `Remover "${doc.name}" e as ${doc.versions.length} versões?`,
+                      "Remover",
+                      async () => {
+                        await del.mutateAsync(doc.id);
+                        toast.success("Documento removido");
+                        void navigate({ to: "/documents" });
+                      },
+                    )
+                  }
+                >
+                  <Trash2 /> Remover documento
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -312,7 +336,18 @@ function DocumentPage() {
                   }
                 />
               )}
-              {tab === "entregar" && <DeliverPanel doc={doc} version={version} />}
+              {tab === "entregar" &&
+                (canManage ? (
+                  <DeliverPanel doc={doc} version={version} />
+                ) : (
+                  <div className="panel flex items-start gap-2.5 p-5 text-[13px] text-muted-foreground">
+                    <Lock className="mt-0.5 size-4 shrink-0" />
+                    <span>
+                      Este documento pertence a {doc.ownerName || doc.ownerEmail}. Como gestor pode
+                      vê-lo, mas só o dono ou um administrador podem entregar novas versões.
+                    </span>
+                  </div>
+                ))}
             </motion.div>
           </AnimatePresence>
         </div>

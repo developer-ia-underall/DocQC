@@ -7,6 +7,8 @@ export interface UserProfile {
   role: AppRole;
   created_at: string;
   last_sign_in_at: string | null;
+  /** Quando viu (ou fechou) o guia do primeiro login; null = ainda não. */
+  onboarded_at?: string | null;
 }
 
 export const ROLES: AppRole[] = ["user", "gestor", "admin"];

@@ -5,6 +5,7 @@ import type { Author, DocumentRecord } from "@/types/domain";
 import { kindLabel, relativeTime } from "@/lib/format";
 import { KindIcon, SecurityBadge, VerdictBadge } from "./status";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth/context";
 
 export function DocumentsTable({
   docs,
@@ -19,6 +20,7 @@ export function DocumentsTable({
 }) {
   const rows = limit ? docs.slice(0, limit) : docs;
   const authorName = (id: string | null) => authors.find((a) => a.id === id)?.name;
+  const me = useAuth().session?.user.id;
 
   if (loading)
     return (
@@ -74,7 +76,11 @@ export function DocumentsTable({
                     <span className="block truncate font-medium">{d.name}</span>
                     <span className="block truncate text-[12px] text-muted-foreground">
                       {kindLabel[d.kind]}
-                      {a.title ? ` · ${a.title}` : ""}
+                      {d.ownerId && d.ownerId !== me
+                        ? ` · carregado por ${d.ownerName || d.ownerEmail}`
+                        : a.title
+                          ? ` · ${a.title}`
+                          : ""}
                     </span>
                   </span>
                 </span>

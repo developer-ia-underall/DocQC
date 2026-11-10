@@ -11,6 +11,7 @@ import { resetSeed, useSaveSettings, useSettings } from "@/services/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import { confirmAction } from "@/lib/platform";
 import { resetAll } from "@/services/store";
+import { authEnabled } from "@/lib/auth/supabase";
 import type { AppSettings } from "@/types/domain";
 
 export const Route = createFileRoute("/settings")({
@@ -170,32 +171,36 @@ function SettingsPage() {
         </Row>
       </div>
 
-      <h2 className="mb-2 mt-8 text-[14px] font-semibold tracking-tight">Dados locais</h2>
-      <div className="panel">
-        <Row
-          title="Repor dados de demonstração"
-          body="Apaga documentos, identidades e definições deste navegador e volta a criar os exemplos."
-        >
-          <Button
-            variant="outline"
-            className="text-danger hover:text-danger md:float-right"
-            onClick={() =>
-              confirmAction(
-                "Apagar todos os dados locais e repor a demonstração?",
-                "Repor",
-                async () => {
-                  await resetAll();
-                  resetSeed();
-                  await qc.invalidateQueries();
-                  toast.success("Dados de demonstração repostos");
-                },
-              )
-            }
-          >
-            <RotateCcw /> Repor
-          </Button>
-        </Row>
-      </div>
+      {!authEnabled && (
+        <>
+          <h2 className="mb-2 mt-8 text-[14px] font-semibold tracking-tight">Dados locais</h2>
+          <div className="panel">
+            <Row
+              title="Repor dados de demonstração"
+              body="Apaga documentos, identidades e definições deste navegador e volta a criar os exemplos."
+            >
+              <Button
+                variant="outline"
+                className="text-danger hover:text-danger md:float-right"
+                onClick={() =>
+                  confirmAction(
+                    "Apagar todos os dados locais e repor a demonstração?",
+                    "Repor",
+                    async () => {
+                      await resetAll();
+                      resetSeed();
+                      await qc.invalidateQueries();
+                      toast.success("Dados de demonstração repostos");
+                    },
+                  )
+                }
+              >
+                <RotateCcw /> Repor
+              </Button>
+            </Row>
+          </div>
+        </>
+      )}
     </Page>
   );
 }

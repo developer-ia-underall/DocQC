@@ -1,5 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { resetDocumentCaches } from "@/services/documents-remote";
 import { authEnabled, supabase } from "./supabase";
 import type { UserProfile } from "./roles";
 
@@ -9,6 +19,8 @@ interface AuthState {
   session: Session | null;
   profile: UserProfile | null;
   refreshProfile: () => Promise<void>;
+  /** Regista que o guia do primeiro login foi visto ou fechado. */
+  markOnboarded: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -17,6 +29,7 @@ const AuthContext = createContext<AuthState>({
   session: null,
   profile: null,
   refreshProfile: async () => {},
+  markOnboarded: async () => {},
   signOut: async () => {},
 });
 
@@ -24,7 +37,7 @@ async function loadProfile(userId: string): Promise<UserProfile | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,email,full_name,role,created_at,last_sign_in_at")
+    .select("id,email,full_name,role,created_at,last_sign_in_at,onboarded_at")
     .eq("id", userId)
     .maybeSingle();
   if (error) console.error(error);
@@ -35,6 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(!authEnabled);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const queryClient = useQueryClient();
+  const lastUser = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     if (!supabase) return;
@@ -42,6 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const apply = async (s: Session | null) => {
       const p = s ? await loadProfile(s.user.id) : null;
       if (!alive) return;
+      // Outra pessoa (ou ninguém) no mesmo separador: esquece tudo o que a anterior via.
+      const uid = s?.user.id ?? null;
+      if (lastUser.current !== undefined && lastUser.current !== uid) {
+        queryClient.clear();
+        resetDocumentCaches();
+      }
+      lastUser.current = uid;
       setSession(s);
       setProfile(p);
       setReady(true);
@@ -57,18 +79,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alive = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const refreshProfile = useCallback(async () => {
     if (session) setProfile(await loadProfile(session.user.id));
   }, [session]);
+
+  const markOnboarded = useCallback(async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.rpc("mark_onboarded");
+    if (error) return console.error(error);
+    setProfile((p) =>
+      p ? { ...p, onboarded_at: (data as string | null) ?? new Date().toISOString() } : p,
+    );
+  }, []);
 
   const signOut = useCallback(async () => {
     await supabase?.auth.signOut();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ready, session, profile, refreshProfile, signOut }}>
+    <AuthContext.Provider
+      value={{ ready, session, profile, refreshProfile, markOnboarded, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

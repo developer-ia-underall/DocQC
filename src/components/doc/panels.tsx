@@ -95,6 +95,15 @@ export function OriginPanel({ a }: { a: AnalysisResult }) {
             {o.evidence.length} regras ativadas
           </span>
         </div>
+        {o.evidence.length > 0 && (
+          <p className="mb-2 text-[12px] leading-relaxed text-muted-foreground">
+            O número à direita é quanto cada regra pesa na pontuação de IA (0–100):{" "}
+            <span className="font-mono text-foreground">+10</span> soma 10 pontos (sinal de IA ou de
+            geração automática); <span className="font-mono text-safe">−10</span>, a verde, tira 10
+            (sinal de edição humana). A soma, limitada a 0–100, dá a pontuação: a partir de 35 há
+            indícios de IA.
+          </p>
+        )}
         {o.evidence.length === 0 ? (
           <div className="panel p-4 text-[13px] text-muted-foreground">
             {a.kind === "text"
@@ -139,8 +148,14 @@ export function OriginPanel({ a }: { a: AnalysisResult }) {
                       "tnum shrink-0 font-mono text-[12px]",
                       e.weight < 0 ? "text-safe" : "text-foreground",
                     )}
+                    title={
+                      e.weight < 0
+                        ? `Tira ${-e.weight} pontos à pontuação de IA (sinal humano)`
+                        : `Soma ${e.weight} pontos à pontuação de IA`
+                    }
                   >
                     {e.weight > 0 ? `+${e.weight}` : e.weight}
+                    <span className="sr-only"> pontos</span>
                   </span>
                 </motion.li>
               );

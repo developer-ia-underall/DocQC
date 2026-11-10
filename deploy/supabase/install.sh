@@ -12,6 +12,10 @@
 #   --db-port <porta>     Postgres (via pooler) em 127.0.0.1 (predefinição: 5532)
 #   --pooler-port <porta> Pooler em modo transação em 127.0.0.1 (predefinição: 6643)
 #   --ref <tag>           Versão do Supabase self-hosted (predefinição: self-hosted/v0.8.4)
+#   --runtime <nome>      Runtime OCI do Docker para todos os contentores, com AppArmor
+#                         "unconfined" (ex. um runc compatível com LXC). Para máquinas LXC/Proxmox onde o runc
+#                         predefinido falha ("open sysctl net.ipv4.ip_unprivileged_port_start").
+#   --check               Prepara a pasta e verifica o isolamento, mas não arranca nada.
 #
 # Pode correr outra vez sem perigo: se a pasta já existir, só atualiza a configuração do DocQC,
 # arranca a stack e aplica migrações novas.
@@ -24,16 +28,20 @@ DB_PORT=5532
 POOLER_PORT=6643
 MAILPIT_PORT=8125
 REF=self-hosted/v0.8.4
+RUNTIME=""
+CHECK_ONLY=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --check) CHECK_ONLY=1; shift ;;
+    --runtime) RUNTIME="$2"; shift 2 ;;
     --dir) INSTALL_DIR="$2"; shift 2 ;;
     --site-url) SITE_URL="${2%/}"; shift 2 ;;
     --api-port) API_PORT="$2"; shift 2 ;;
     --db-port) DB_PORT="$2"; shift 2 ;;
     --pooler-port) POOLER_PORT="$2"; shift 2 ;;
     --ref) REF="$2"; shift 2 ;;
-    -h|--help) sed -n 2,19p "$0"; exit 0 ;;
+    -h|--help) sed -n 2,21p "$0"; exit 0 ;;
     *) echo "Opção desconhecida: $1" >&2; exit 1 ;;
   esac
 done
@@ -92,7 +100,25 @@ if [ ! -f "$INSTALL_DIR/.env" ]; then
   curl -fsSL "https://raw.githubusercontent.com/supabase/supabase/${REF}/docker/setup.sh" -o "$tmp/setup.sh"
   # --skip-deps: não instala pacotes do sistema; -y: sem perguntas (os URLs são definidos abaixo).
   # O setup.sh oficial gera todas as chaves e segredos e descarrega as imagens.
-  ( cd "$parent" && sh "$tmp/setup.sh" --skip-deps -y --ref "$REF" --project-dir "$name" )
+  # Com --runtime, o "docker run" que o setup.sh usa para gerar chaves também precisa dele.
+  setup_path="$PATH"
+  if [ -n "$RUNTIME" ]; then
+    real_docker="$(command -v docker)"; mkdir -p "$tmp/bin"
+    cat > "$tmp/bin/docker" <<SH
+#!/bin/sh
+if [ "\$1" = run ]; then shift; exec "$real_docker" run --runtime "$RUNTIME" --security-opt apparmor=unconfined "\$@"; fi
+exec "$real_docker" "\$@"
+SH
+    chmod +x "$tmp/bin/docker"; setup_path="$tmp/bin:$PATH"
+  fi
+  # O output do setup.sh inclui os segredos gerados: vai para um log privado, não para o ecrã.
+  setup_log="$parent/.${name}-setup.log"; ( umask 077; : > "$setup_log" )
+  if ! ( cd "$parent" && PATH="$setup_path" sh "$tmp/setup.sh" --skip-deps -y --ref "$REF" --project-dir "$name" ) >"$setup_log" 2>&1; then
+    grep -E '^(===>|ERROR|WARNING|docker:)' "$setup_log" | tail -n 15 >&2
+    die "o setup.sh oficial falhou (log completo, com segredos: $setup_log)."
+  fi
+  grep -E '^===>' "$setup_log" || true
+  rm -f "$setup_log"
 fi
 
 cd "$INSTALL_DIR"
@@ -109,7 +135,22 @@ chmod +x docqc/*.sh
 # --- 3. .env -----------------------------------------------------------------------------------
 log "A ajustar o .env"
 set_env COMPOSE_PROJECT_NAME docqc-supabase
-set_env COMPOSE_FILE docker-compose.yml:docker-compose.docqc.yml
+if [ -n "$RUNTIME" ]; then set_env DOCQC_RUNTIME "$RUNTIME"; fi
+RUNTIME="$(get_env DOCQC_RUNTIME)"
+if [ -n "$RUNTIME" ]; then
+  docker info --format '{{json .Runtimes}}' | grep -q "\"$RUNTIME\"" || die "o Docker não conhece o runtime '$RUNTIME'."
+  {
+    echo "# Gerado pelo install.sh (--runtime $RUNTIME). Não editar."
+    echo "services:"
+    for s in studio api-gw auth rest realtime storage imgproxy meta functions db supavisor email-templates mailpit; do
+      printf '  %s:\n    runtime: %s\n    security_opt:\n      - apparmor=unconfined\n' "$s" "$RUNTIME"
+    done
+  } > docker-compose.docqc-runtime.yml
+  set_env COMPOSE_FILE docker-compose.yml:docker-compose.docqc.yml:docker-compose.docqc-runtime.yml
+else
+  rm -f docker-compose.docqc-runtime.yml
+  set_env COMPOSE_FILE docker-compose.yml:docker-compose.docqc.yml
+fi
 set_env API_GW_HTTP_PORT "$API_PORT"
 set_env KONG_HTTP_PORT "$API_PORT"
 set_env DOCQC_DB_PORT "$DB_PORT"
@@ -144,6 +185,20 @@ if [ -n "$SITE_URL" ]; then
 fi
 
 # --- 4. arrancar --------------------------------------------------------------------------------
+# Salvaguarda: o compose oficial chama-se "supabase" e usa nomes de contentores fixos. Se o nome
+# do projeto ou dos contentores não tiver sido trocado, "up --remove-orphans" podia mexer noutra
+# instância. Confirmar antes de arrancar.
+log "A verificar o isolamento"
+cfg_name="$(docker compose config --format json | grep -o '"name": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')"
+[ "$cfg_name" = "docqc-supabase" ] || die "o projeto Compose resolve para '$cfg_name' e não 'docqc-supabase'. Nada foi arrancado."
+for c in $(docker compose config --format json | grep -o '"container_name": *"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/'); do
+  case "$c" in docqc-supabase-*) ;; *) die "contentor sem prefixo docqc-supabase-: '$c'. Nada foi arrancado." ;; esac
+  owner="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c" 2>/dev/null || true)"
+  [ -z "$owner" ] || [ "$owner" = "docqc-supabase" ] || die "o contentor '$c' já existe e pertence ao projeto '$owner'. Nada foi arrancado."
+done
+echo "ok: projeto docqc-supabase, contentores docqc-supabase-*"
+if [ "$CHECK_ONLY" = 1 ]; then echo "--check: nada foi arrancado."; exit 0; fi
+
 log "A arrancar a stack docqc-supabase"
 docker compose up -d --remove-orphans
 

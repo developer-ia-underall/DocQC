@@ -28,6 +28,7 @@ services:
       DOCQC_SITE: ${DOCQC_SITE:?defina DOCQC_SITE em deploy/web/.env}
       SUPABASE_UPSTREAM: ${SUPABASE_UPSTREAM:?defina SUPABASE_UPSTREAM em deploy/web/.env}
       ACME_EMAIL: ${ACME_EMAIL:-admin@underall.com}
+      DOCQC_DEFAULT_SNI: ${DOCQC_DEFAULT_SNI:-docqc.underall.com}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

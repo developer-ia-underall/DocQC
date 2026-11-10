@@ -18,7 +18,10 @@ import {
   Check,
   Users,
   LogOut,
+  CircleHelp,
 } from "lucide-react";
+import { TourProvider, useTour } from "@/components/tour/tour";
+import logoUrl from "@/assets/logo-underall.png";
 import { useAuth } from "@/lib/auth/context";
 import { ROLE_LABEL, atLeast } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -62,26 +65,17 @@ export const NAV = [
   { to: "/settings", label: "Definições", icon: Settings, key: "s" },
 ] as const;
 
-export function Logo() {
+export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-[22px]" aria-hidden>
-      <rect x="1" y="1" width="22" height="22" rx="6" fill="var(--foreground)" />
-      <path
-        d="M8 6.5h5.2L17 10.3V17.5H8z"
-        fill="none"
-        stroke="var(--background)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10.4 13.2l1.6 1.6 3-3.2"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <img
+      src={logoUrl}
+      alt=""
+      aria-hidden
+      width={22}
+      height={22}
+      draggable={false}
+      className={cn("size-[22px] shrink-0 select-none", className)}
+    />
   );
 }
 
@@ -156,6 +150,7 @@ function SidebarContent({
               key={n.to}
               to={n.to as never}
               onClick={onNavigate}
+              data-tour={`nav-${n.to}`}
               className={cn(
                 "group relative flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors",
                 on
@@ -362,7 +357,34 @@ function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (b: boolean
   );
 }
 
+function HelpButton() {
+  const { start } = useTour();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={start}
+          data-tour="help"
+          className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+          aria-label="Abrir guia de utilização"
+        >
+          <CircleHelp className="size-4" strokeWidth={1.6} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>Guia de utilização</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <TourProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </TourProvider>
+  );
+}
+
+function AppShellInner({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [cmd, setCmd] = useState(false);
@@ -463,6 +485,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <button
             onClick={() => setCmd(true)}
+            data-tour="search"
             className="flex h-8 items-center gap-2 rounded-md border border-border bg-card pl-2.5 pr-1.5 text-[12.5px] text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground sm:w-60"
           >
             <Search className="size-3.5" />
@@ -472,6 +495,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Kbd>K</Kbd>
             </span>
           </button>
+          <HelpButton />
         </header>
         <main className="flex-1">{children}</main>
       </div>

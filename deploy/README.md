@@ -92,6 +92,44 @@ sudo ./docqc/configure.sh --smtp-host smtp.resend.com --smtp-port 465 --smtp-use
 
 Funciona com qualquer SMTP (Resend, Microsoft 365, Google Workspace, Brevo…). Configure SPF/DKIM do domínio de envio para os e-mails não irem para o spam. Para voltar ao Mailpit: `--smtp-mailpit`.
 
+## Máquinas partilhadas, LXC/Proxmox, sem portas 80/443
+
+Quando as duas máquinas são contentores LXC (ex. Proxmox) partilhados
+com outras aplicações em produção:
+
+**Supabase (A).** Em LXC, o `runc` predefinido falha ao criar contentores
+(`open sysctl net.ipv4.ip_unprivileged_port_start … permission denied`). Use um runtime que já
+funcione na máquina (veja `docker info --format "{{json .Runtimes}}"`) e instale na pasta do utilizador:
+
+```bash
+cd ~/docqc
+./deploy/supabase/install.sh --dir ~/docqc-supabase --site-url https://<IP-B>:8443 \
+     --runtime <runtime> --check      # prepara e verifica o isolamento, sem arrancar nada
+./deploy/supabase/install.sh --dir ~/docqc-supabase   # arranca e aplica as migrações
+```
+
+O `install.sh` recusa arrancar se o projeto Compose não se chamar `docqc-supabase` ou se algum
+contentor colidir com outro projeto. O output do `setup.sh` oficial (que contém os segredos) vai
+para um log privado, não para o ecrã.
+
+**Front (B) sem Docker.** Se o Docker não arranca contentores e o nginx da máquina já ocupa a 80/443,
+use o modo PM2: app Node com um Bun próprio (`~/.bun-docqc`) e um Caddy próprio (`~/.local/docqc`),
+sem sudo e sem mexer no Node, no Bun nem no nginx das outras aplicações.
+
+```bash
+cd ~/docqc/deploy/web && cp .env.example .env && nano .env
+#   VITE_SUPABASE_PUBLISHABLE_KEY=…   SUPABASE_UPSTREAM=<IP-A>:8100
+#   DOCQC_SITE=https://<IP-B>:8443   DOCQC_DEFAULT_SNI=<IP-B>
+#   DOCQC_CADDY_HTTP_PORT=8088   DOCQC_APP_PORT=3016
+./pm2/deploy.sh          # build + pm2 startOrReload + pm2 save;  --pull para atualizar
+```
+
+**Migrações sem acesso ao Docker.** O dono de `~/docqc-supabase` pode ligar-se ao Postgres do DocQC
+pelo pooler local (só 127.0.0.1): cópia de segurança com `pg_dump -n public -n supabase_migrations`,
+aplicar o ficheiro numa transação com o registo em `supabase_migrations.schema_migrations`
+(como faz `apply-migrations.sh`) e `notify pgrst, 'reload schema'`. Utilizador
+`postgres.<POOLER_TENANT_ID>`, porta `DOCQC_DB_PORT`, palavra-passe `POSTGRES_PASSWORD` do `.env`.
+
 ## Operação
 
 | Tarefa | Onde | Comando |
@@ -118,4 +156,6 @@ deploy/web/docker-compose.yml              app + Caddy (máquina B)
 deploy/web/Caddyfile                       HTTPS e encaminhamento /auth/v1, /rest/v1, … para a máquina A
 deploy/web/.env.example                    configuração da máquina B
 deploy/web/deploy.sh                       build e arranque (máquina B)
+deploy/web/pm2/deploy.sh                   build e arranque sem Docker, com PM2 (máquina B)
+deploy/web/pm2/ecosystem.config.cjs        processos PM2 docqc-web e docqc-caddy
 ```
