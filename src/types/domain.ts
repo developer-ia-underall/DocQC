@@ -73,6 +73,10 @@ export interface DocumentRecord {
   versions: DocVersion[];
   /** Demo records have no stored file bytes. */
   demo?: boolean | undefined;
+  /** Conta que carregou o documento (só com Supabase). */
+  ownerId?: string | undefined;
+  ownerEmail?: string | undefined;
+  ownerName?: string | undefined;
 }
 
 export interface IdentityProfile {

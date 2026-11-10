@@ -1,8 +1,9 @@
 /**
- * Local persistence layer (IndexedDB via idb-keyval).
+ * Persistence layer. Every read/write the UI does goes through this module.
  *
- * Every read/write the UI does goes through this module, so swapping it for a backend
- * (Supabase tables + Storage bucket) means re-implementing these functions only.
+ * Documents and files: in Supabase (tables + private bucket, see documents-remote.ts) when there
+ * is a login; in IndexedDB (idb-keyval) in local mode (static test build, no Supabase).
+ * Settings and the local author list stay in IndexedDB.
  */
 import { createStore, get, set, del } from "idb-keyval";
 import type {
@@ -14,6 +15,11 @@ import type {
   IdentityProfile,
 } from "@/types/domain";
 import { uid } from "@/lib/format";
+import { supabase } from "@/lib/auth/supabase";
+import { authorKey, docKey, usableAuthorName } from "@/lib/doc-key";
+import * as remote from "./documents-remote";
+
+export { docKey };
 
 const db = typeof indexedDB !== "undefined" ? createStore("docqc", "kv") : undefined;
 const mem = new Map<string, unknown>();
@@ -56,12 +62,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 /* ------------------------------------------ Documents ---------------------------------------- */
 
-export const listDocuments = () =>
-  read<DocumentRecord[]>("docs", []).then((d) =>
-    [...d].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-  );
+export const listDocuments = (): Promise<DocumentRecord[]> =>
+  supabase
+    ? remote.listDocuments()
+    : read<DocumentRecord[]>("docs", []).then((d) =>
+        [...d].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      );
 
 export async function getDocument(id: string) {
+  if (supabase) return remote.getDocument(id);
   return (await read<DocumentRecord[]>("docs", [])).find((d) => d.id === id) ?? null;
 }
 
@@ -78,6 +87,7 @@ export async function upsertDocument(doc: DocumentRecord) {
 }
 
 export async function deleteDocument(id: string) {
+  if (supabase) return remote.deleteDocument(id);
   const docs = await read<DocumentRecord[]>("docs", []);
   const doc = docs.find((d) => d.id === id);
   if (doc) for (const v of doc.versions) await deleteFile(v.id);
@@ -87,23 +97,11 @@ export async function deleteDocument(id: string) {
 /* -------------------------------------------- Files ------------------------------------------ */
 
 export const saveFile = (versionId: string, bytes: Uint8Array) => write(`file:${versionId}`, bytes);
-export const getFile = (versionId: string) => read<Uint8Array | null>(`file:${versionId}`, null);
+export const getFile = (versionId: string) =>
+  supabase ? remote.getFile(versionId) : read<Uint8Array | null>(`file:${versionId}`, null);
 const deleteFile = (versionId: string) => remove(`file:${versionId}`);
 
 /* ------------------------------------------ Versioning --------------------------------------- */
-
-/** Normalises a file name / title so "Relatório_v2 (final).docx" and "relatorio.docx" match. */
-export function docKey(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\.[a-z0-9]{2,5}$/, "")
-    .replace(/[_\-\s]*(v|ver|versao|version|rev)\s*\d+$/g, "")
-    .replace(/\(\d+\)|\bfinal\b|\bcopia\b|\bcopy\b|_docqc$/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
 
 export type IngestResult =
   | { status: "duplicate"; doc: DocumentRecord; version: DocVersion }
@@ -124,6 +122,7 @@ export interface IngestInput {
 }
 
 export async function ingest(input: IngestInput): Promise<IngestResult> {
+  if (supabase) return remote.ingest(input);
   const docs = await read<DocumentRecord[]>("docs", []);
   const now = new Date().toISOString();
 
@@ -199,14 +198,13 @@ export async function ingest(input: IngestInput): Promise<IngestResult> {
 
 /* ------------------------------------------- Authors ----------------------------------------- */
 
-const GENERIC =
-  /^(root|user|sandbox|admin|ubuntu|runner|jovyan|python|unknown|anonymous|python-docx|un-named|author)$/i;
-
 export const listAuthors = () => read<Author[]>("authors", []);
 
 export async function resolveAuthor(name?: string): Promise<string | null> {
-  const n = name?.trim();
-  if (!n || GENERIC.test(n) || /python|openpyxl|canny/i.test(n)) return null;
+  const n = usableAuthorName(name);
+  if (!n) return null;
+  // Com Supabase não há tabela de autores: a chave deriva do nome (ver deriveAuthors).
+  if (supabase) return authorKey(n);
   const authors = await listAuthors();
   const k = docKey(n);
   const hit = authors.find((a) => docKey(a.name) === k);

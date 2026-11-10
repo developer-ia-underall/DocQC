@@ -21,6 +21,7 @@ import {
   CircleHelp,
 } from "lucide-react";
 import { TourProvider, useTour } from "@/components/tour/tour";
+import logoUrl from "@/assets/logo-underall.png";
 import { useAuth } from "@/lib/auth/context";
 import { ROLE_LABEL, atLeast } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -64,26 +65,17 @@ export const NAV = [
   { to: "/settings", label: "Definições", icon: Settings, key: "s" },
 ] as const;
 
-export function Logo() {
+export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-[22px]" aria-hidden>
-      <rect x="1" y="1" width="22" height="22" rx="6" fill="var(--foreground)" />
-      <path
-        d="M8 6.5h5.2L17 10.3V17.5H8z"
-        fill="none"
-        stroke="var(--background)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10.4 13.2l1.6 1.6 3-3.2"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <img
+      src={logoUrl}
+      alt=""
+      aria-hidden
+      width={22}
+      height={22}
+      draggable={false}
+      className={cn("size-[22px] shrink-0 select-none", className)}
+    />
   );
 }
 

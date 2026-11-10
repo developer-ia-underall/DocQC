@@ -77,7 +77,7 @@ export function DeliverPanel({ doc, version }: { doc: DocumentRecord; version: D
     setBusy(true);
     try {
       const bytes = await store.getFile(version.id);
-      if (!bytes) throw new Error("O ficheiro original não está guardado neste navegador.");
+      if (!bytes) throw new Error("O ficheiro original não está disponível.");
       const out = await rewriteDocument({
         bytes,
         fileName: version.fileName,
@@ -120,8 +120,8 @@ export function DeliverPanel({ doc, version }: { doc: DocumentRecord; version: D
   if (hasFile === false)
     return (
       <div className="panel p-5 text-[13px] text-muted-foreground">
-        O ficheiro desta versão não está guardado neste navegador. Carregue-o novamente para o poder
-        entregar.
+        O ficheiro desta versão não está disponível (os exemplos de demonstração não têm ficheiro).
+        Carregue-o novamente para o poder entregar.
       </div>
     );
 

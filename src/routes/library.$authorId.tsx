@@ -37,7 +37,7 @@ function AuthorPage() {
         <EmptyState
           icon={UserX}
           title="Autor não encontrado"
-          body="Este autor não existe neste navegador."
+          body="Este autor não existe ou não tem acesso aos documentos dele."
           action={
             <Button asChild>
               <Link to="/library">Voltar</Link>

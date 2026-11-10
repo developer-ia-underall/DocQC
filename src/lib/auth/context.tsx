@@ -1,5 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { resetDocumentCaches } from "@/services/documents-remote";
 import { authEnabled, supabase } from "./supabase";
 import type { UserProfile } from "./roles";
 
@@ -38,6 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(!authEnabled);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const queryClient = useQueryClient();
+  const lastUser = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     if (!supabase) return;
@@ -45,6 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const apply = async (s: Session | null) => {
       const p = s ? await loadProfile(s.user.id) : null;
       if (!alive) return;
+      // Outra pessoa (ou ninguém) no mesmo separador: esquece tudo o que a anterior via.
+      const uid = s?.user.id ?? null;
+      if (lastUser.current !== undefined && lastUser.current !== uid) {
+        queryClient.clear();
+        resetDocumentCaches();
+      }
+      lastUser.current = uid;
       setSession(s);
       setProfile(p);
       setReady(true);
@@ -60,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alive = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const refreshProfile = useCallback(async () => {
     if (session) setProfile(await loadProfile(session.user.id));

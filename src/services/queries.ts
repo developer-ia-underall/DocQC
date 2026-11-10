@@ -2,11 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as store from "./store";
 import * as identities from "./identities";
 import { seedDemo } from "./seed";
+import { deriveAuthors } from "./documents-remote";
+import { authEnabled } from "@/lib/auth/supabase";
 import type { AppSettings, IdentityProfile } from "@/types/domain";
 
 let seeding: Promise<void> | null = null;
-/** Seeds demo data once per browser; every query awaits it so screens never flash empty. */
-export const ensureSeed = () => (seeding ??= seedDemo().catch((e) => console.error(e)));
+/**
+ * Seeds demo data once per browser; every query awaits it so screens never flash empty.
+ * Só no modo local: com login, cada conta começa vazia e vê apenas os seus documentos.
+ */
+export const ensureSeed = () =>
+  (seeding ??= authEnabled ? Promise.resolve() : seedDemo().catch((e) => console.error(e)));
 export const resetSeed = () => {
   seeding = null;
 };
@@ -29,7 +35,12 @@ export const useDocument = (id: string) =>
 export const useAuthors = () =>
   useQuery({
     queryKey: qk.authors,
-    queryFn: async () => (await ensureSeed(), store.listAuthors()),
+    queryFn: async () => {
+      await ensureSeed();
+      if (!authEnabled) return store.listAuthors();
+      const [docs, ids] = await Promise.all([store.listDocuments(), identities.listIdentities()]);
+      return deriveAuthors(docs, ids);
+    },
   });
 export const useProfiles = () =>
   useQuery({
