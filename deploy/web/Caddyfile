@@ -7,6 +7,12 @@
 # com a máquina do Supabase e o painel (Studio) não fica exposto.
 {
 	email {$ACME_EMAIL}
+	# Acesso por IP: o navegador não envia SNI e, dentro do Docker, o IP local é o do
+	# contentor, por isso o Caddy não saberia que certificado apresentar sem isto.
+	default_sni {$DOCQC_DEFAULT_SNI:docqc.underall.com}
+	# Porta dos redirecionamentos HTTP→HTTPS. Fora do Docker, numa máquina onde o nginx já
+	# ocupa a 80, use outra (ex. 8088) e ponha a porta HTTPS em DOCQC_SITE (https://IP:8443).
+	http_port {$DOCQC_CADDY_HTTP_PORT:80}
 }
 
 {$DOCQC_SITE} {
@@ -18,7 +24,8 @@
 	}
 
 	handle {
-		reverse_proxy web:3000
+		# web:3000 no Docker; 127.0.0.1:<porta> quando a app corre com PM2 (deploy/web/pm2/).
+		reverse_proxy {$DOCQC_APP_UPSTREAM:web:3000}
 	}
 
 	header {
