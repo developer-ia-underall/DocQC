@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfilesRouteImport } from './routes/profiles'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
 import { Route as LibraryIndexRouteImport } from './routes/library.index'
@@ -21,6 +24,11 @@ import { Route as LibraryAuthorIdRouteImport } from './routes/library.$authorId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfilesRoute = ProfilesRouteImport.update({
@@ -36,6 +44,16 @@ const SettingsRoute = SettingsRouteImport.update({
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/auth/confirm',
+  path: '/auth/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
@@ -61,9 +79,12 @@ const LibraryAuthorIdRoute = LibraryAuthorIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/library/$authorId': typeof LibraryAuthorIdRoute
   '/documents/': typeof DocumentsIndexRoute
@@ -71,9 +92,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/library/$authorId': typeof LibraryAuthorIdRoute
   '/documents': typeof DocumentsIndexRoute
@@ -82,9 +106,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/library/$authorId': typeof LibraryAuthorIdRoute
   '/documents/': typeof DocumentsIndexRoute
@@ -94,9 +121,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/profiles'
     | '/settings'
     | '/upload'
+    | '/admin/users'
+    | '/auth/confirm'
     | '/documents/$id'
     | '/library/$authorId'
     | '/documents/'
@@ -104,9 +134,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/profiles'
     | '/settings'
     | '/upload'
+    | '/admin/users'
+    | '/auth/confirm'
     | '/documents/$id'
     | '/library/$authorId'
     | '/documents'
@@ -114,9 +147,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/profiles'
     | '/settings'
     | '/upload'
+    | '/admin/users'
+    | '/auth/confirm'
     | '/documents/$id'
     | '/library/$authorId'
     | '/documents/'
@@ -125,9 +161,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   ProfilesRoute: typeof ProfilesRoute
   SettingsRoute: typeof SettingsRoute
   UploadRoute: typeof UploadRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
   DocumentsIdRoute: typeof DocumentsIdRoute
   LibraryAuthorIdRoute: typeof LibraryAuthorIdRoute
   DocumentsIndexRoute: typeof DocumentsIndexRoute
@@ -141,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profiles': {
@@ -162,6 +208,20 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/auth/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents/': {
@@ -197,9 +257,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   ProfilesRoute: ProfilesRoute,
   SettingsRoute: SettingsRoute,
   UploadRoute: UploadRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
   DocumentsIdRoute: DocumentsIdRoute,
   LibraryAuthorIdRoute: LibraryAuthorIdRoute,
   DocumentsIndexRoute: DocumentsIndexRoute,

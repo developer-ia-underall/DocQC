@@ -14,6 +14,9 @@ describe("App routing", () => {
     "/library/x",
     "/profiles",
     "/settings",
+    "/login",
+    "/auth/confirm",
+    "/admin/users",
   ])("matches a page for %s", (path) => {
     expect(router.matchRoutes(path).at(-1)?.routeId).not.toBe(rootRouteId);
   });

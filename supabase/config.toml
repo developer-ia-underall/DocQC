@@ -1,0 +1,46 @@
+# Configuração do Supabase CLI (local: `supabase start`; remoto: `supabase config push`).
+project_id = "docqc"
+
+[api]
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+port = 54323
+
+# Caixa de correio local para ver os e-mails de entrada (http://127.0.0.1:54324).
+[local_smtp]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://127.0.0.1:5173", "http://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+# Registo aberto: qualquer pessoa pode criar conta (entra com papel "user").
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 3600
+max_frequency = "60s"
+
+[auth.email.template.magic_link]
+subject = "O seu código de acesso ao DocQC"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Confirme a sua conta DocQC"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.rate_limit]
+email_sent = 30
