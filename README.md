@@ -41,7 +41,11 @@ As regras vivem na base de dados (`supabase/migrations/`): RLS na tabela `profil
 
 Sem `VITE_SUPABASE_URL` a app corre como antes, em modo local sem login (é assim que a build estática de testes funciona).
 
-### Configurar (uma vez)
+### Alojar nas máquinas próprias
+
+Supabase self-hosted ao lado de outra instância existente + front com Caddy (por IP primeiro, depois `docqc.underall.com`): ver [deploy/README.md](deploy/README.md).
+
+### Configurar (uma vez) no supabase.com
 
 1. **Criar o projeto** em [supabase.com](https://supabase.com) (o plano gratuito chega). Região sugerida: `eu-west` (Europa).
 2. **Variáveis**: copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (Project Settings → API). No alojamento (Vercel, Cloudflare, Netlify…) defina as mesmas duas variáveis. A chave pública pode ir para o navegador; a `service_role`/secret **nunca**.

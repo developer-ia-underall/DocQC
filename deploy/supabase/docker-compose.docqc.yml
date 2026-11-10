@@ -1,0 +1,88 @@
+# Sobreposição DocQC para o Supabase self-hosted oficial (supabase/supabase, pasta docker/).
+#
+# Objetivo: correr uma SEGUNDA instância do Supabase na mesma máquina que já tem outra,
+# sem tocar nela:
+#   - nome de projeto Compose próprio (docqc-supabase) → rede e volumes próprios;
+#   - nomes de contentores próprios (os oficiais são fixos, ex. "supabase-db", e chocariam);
+#   - portas no anfitrião diferentes das predefinidas (8000 / 5432 / 6543);
+#   - Postgres e pooler só em 127.0.0.1 (não ficam expostos na rede).
+#
+# Também configura o Auth do DocQC: código de 6 dígitos, modelos de e-mail em pt-PT
+# (servidos por um nginx interno) e um Mailpit para testar envios sem SMTP real.
+#
+# O install.sh acrescenta este ficheiro a COMPOSE_FILE no .env, por isso basta "docker compose ...".
+
+name: docqc-supabase
+
+services:
+  studio:
+    container_name: docqc-supabase-studio
+
+  api-gw:
+    container_name: docqc-supabase-api-gw
+
+  auth:
+    container_name: docqc-supabase-auth
+    depends_on:
+      email-templates:
+        condition: service_started
+    environment:
+      GOTRUE_MAILER_OTP_LENGTH: "6"
+      GOTRUE_MAILER_OTP_EXP: "3600"
+      GOTRUE_SMTP_MAX_FREQUENCY: 60s
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: "30"
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://email-templates/magic_link.html
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://email-templates/confirmation.html
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "O seu código de acesso ao DocQC"
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Confirme a sua conta DocQC"
+      GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: "true"
+
+  rest:
+    container_name: docqc-supabase-rest
+
+  realtime:
+    container_name: docqc-supabase-realtime
+    networks:
+      default:
+        # O gateway oficial chama o Realtime por este nome (e o Realtime tira dele o tenant).
+        # Um alias de rede resolve só dentro da rede deste projeto, sem colidir com o outro Supabase.
+        aliases:
+          - realtime-dev.supabase-realtime
+
+  storage:
+    container_name: docqc-supabase-storage
+
+  imgproxy:
+    container_name: docqc-supabase-imgproxy
+
+  meta:
+    container_name: docqc-supabase-meta
+
+  functions:
+    container_name: docqc-supabase-edge-functions
+
+  db:
+    container_name: docqc-supabase-db
+
+  supavisor:
+    container_name: docqc-supabase-pooler
+    ports: !override
+      - 127.0.0.1:${DOCQC_DB_PORT:-5532}:5432
+      - 127.0.0.1:${DOCQC_POOLER_PORT:-6643}:6543
+
+  # Modelos de e-mail do DocQC (o GoTrue self-hosted lê-os por URL).
+  email-templates:
+    container_name: docqc-supabase-email-templates
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    volumes:
+      - ./docqc/templates:/usr/share/nginx/html:ro
+
+  # Caixa de correio de testes: enquanto não houver SMTP real, os e-mails ficam aqui.
+  # Interface em http://127.0.0.1:${DOCQC_MAILPIT_PORT:-8125} (só nesta máquina; use um túnel SSH).
+  mailpit:
+    container_name: docqc-supabase-mailpit
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${DOCQC_MAILPIT_PORT:-8125}:8025
