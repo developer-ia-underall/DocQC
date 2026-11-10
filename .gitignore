@@ -23,3 +23,8 @@ dist-ssr
 .DS_Store
 *.sw?
 dist-spa
+
+# Supabase CLI
+supabase/.branches
+supabase/.temp
+.env

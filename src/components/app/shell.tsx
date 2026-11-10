@@ -16,7 +16,11 @@ import {
   PanelLeftClose,
   PanelLeft,
   Check,
+  Users,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth/context";
+import { ROLE_LABEL, atLeast } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme";
 import { Kbd, KindIcon } from "./status";
@@ -58,7 +62,7 @@ export const NAV = [
   { to: "/settings", label: "Definições", icon: Settings, key: "s" },
 ] as const;
 
-function Logo() {
+export function Logo() {
   return (
     <svg viewBox="0 0 24 24" className="size-[22px]" aria-hidden>
       <rect x="1" y="1" width="22" height="22" rx="6" fill="var(--foreground)" />
@@ -96,6 +100,13 @@ function SidebarContent({
     (q) => q.stage !== "done" && q.stage !== "error" && q.stage !== "cancelled",
   ).length;
   const isActive = (to: string) => (to === "/" ? path === "/" : path.startsWith(to));
+  const { session, profile, signOut } = useAuth();
+  const items: { to: string; label: string; icon: typeof Users }[] = [
+    ...NAV,
+    ...(atLeast(profile?.role, "gestor")
+      ? [{ to: "/admin/users", label: "Utilizadores", icon: Users }]
+      : []),
+  ];
 
   return (
     <div className="flex h-full flex-col">
@@ -138,12 +149,12 @@ function SidebarContent({
       </div>
 
       <nav className="mt-2 flex flex-1 flex-col gap-px px-2">
-        {NAV.map((n) => {
+        {items.map((n) => {
           const on = isActive(n.to);
           const item = (
             <Link
               key={n.to}
-              to={n.to}
+              to={n.to as never}
               onClick={onNavigate}
               className={cn(
                 "group relative flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors",
@@ -186,7 +197,21 @@ function SidebarContent({
         })}
       </nav>
 
-      <div className={cn("border-t border-sidebar-border p-2", collapsed && "flex justify-center")}>
+      <div
+        className={cn(
+          "border-t border-sidebar-border p-2",
+          collapsed && "flex flex-col items-center gap-1",
+        )}
+      >
+        {session && (
+          <AccountMenu
+            collapsed={collapsed}
+            name={profile?.full_name || session.user.email?.split("@")[0] || "Conta"}
+            email={session.user.email ?? ""}
+            role={profile ? ROLE_LABEL[profile.role] : null}
+            onSignOut={() => void signOut()}
+          />
+        )}
         <button
           onClick={toggle}
           className={cn(
@@ -214,6 +239,59 @@ function SidebarContent({
         </button>
       </div>
     </div>
+  );
+}
+
+function AccountMenu({
+  collapsed,
+  name,
+  email,
+  role,
+  onSignOut,
+}: {
+  collapsed: boolean;
+  name: string;
+  email: string;
+  role: string | null;
+  onSignOut: () => void;
+}) {
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          "mb-1 flex h-9 w-full items-center gap-2.5 rounded-md px-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent/60",
+          collapsed && "w-8 justify-center px-0",
+        )}
+        aria-label="Conta"
+      >
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/15 text-[10.5px] font-semibold text-primary">
+          {initials || "?"}
+        </span>
+        {!collapsed && (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[12.5px] font-medium leading-tight">{name}</span>
+            <span className="block truncate text-[11px] leading-tight text-muted-foreground">
+              {role ?? email}
+            </span>
+          </span>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="top" className="w-60">
+        <DropdownMenuLabel>
+          <div className="truncate text-[12.5px] font-medium text-foreground">{email}</div>
+          {role && <div className="text-[11.5px] font-normal">{role}</div>}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onSignOut}>
+          <LogOut /> Terminar sessão
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

@@ -4,6 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
+  useNavigate,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -16,6 +18,9 @@ import { AppShell } from "@/components/app/shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { AuthProvider, useAuth } from "@/lib/auth/context";
+import { authEnabled } from "@/lib/auth/supabase";
+import { Loader2 } from "lucide-react";
 
 function NotFoundComponent() {
   return (
@@ -111,12 +116,45 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider delayDuration={300}>
-          <AppShell>
-            <Outlet />
-          </AppShell>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
+  );
+}
+
+const PUBLIC_PATHS = ["/login", "/auth/confirm"];
+
+/** Com Supabase configurado, todas as páginas exceto as de entrada exigem sessão. */
+function AuthGate() {
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { ready, session } = useAuth();
+  const isPublic = PUBLIC_PATHS.includes(path);
+  const blocked = authEnabled && !isPublic && ready && !session;
+
+  useEffect(() => {
+    if (blocked)
+      void navigate({
+        to: "/login",
+        search: path === "/" ? {} : { redirect: path },
+        replace: true,
+      });
+  }, [blocked, navigate, path]);
+
+  if (isPublic) return <Outlet />;
+  if (authEnabled && (!ready || !session))
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="A carregar" />
+      </div>
+    );
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
   );
 }

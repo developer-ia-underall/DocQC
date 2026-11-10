@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt">
+  <body style="margin:0;padding:24px;background:#f6f7f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#fff;border:1px solid #e5e7e7;border-radius:10px">
+      <tr><td style="padding:28px 28px 8px">
+        <div style="font-size:14px;font-weight:600">DocQC</div>
+        <h1 style="margin:16px 0 8px;font-size:18px;font-weight:600">Bem-vindo ao DocQC</h1>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#555">Introduza este código de 6 dígitos no DocQC para confirmar a sua conta.</p>
+      </td></tr>
+      <tr><td style="padding:20px 28px">
+        <div style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:30px;letter-spacing:8px;font-weight:600;text-align:center;padding:14px 0;background:#f2f7f6;border-radius:8px;color:#0d6b62">{{ .Token }}</div>
+      </td></tr>
+      <tr><td style="padding:0 28px 8px;font-size:14px;color:#555">Ou entre directamente com um clique:</td></tr>
+      <tr><td style="padding:8px 28px 24px">
+        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=signup" style="display:inline-block;background:#0d6b62;color:#fff;text-decoration:none;font-size:14px;font-weight:500;padding:10px 16px;border-radius:6px">Confirmar e entrar</a>
+      </td></tr>
+      <tr><td style="padding:16px 28px 24px;border-top:1px solid #eef0f0;font-size:12px;line-height:1.5;color:#888">
+        O código e a ligação expiram em 1 hora e só funcionam uma vez. Se não pediu este acesso, ignore este e-mail.
+      </td></tr>
+    </table>
+  </body>
+</html>
