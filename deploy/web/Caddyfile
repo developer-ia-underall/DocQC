@@ -13,6 +13,8 @@
 	# Porta dos redirecionamentos HTTP→HTTPS. Fora do Docker, numa máquina onde o nginx já
 	# ocupa a 80, use outra (ex. 8088) e ponha a porta HTTPS em DOCQC_SITE (https://IP:8443).
 	http_port {$DOCQC_CADDY_HTTP_PORT:80}
+	# Não tentar instalar a CA interna no sistema (pediria sudo); o navegador aceita o aviso uma vez.
+	skip_install_trust
 }
 
 {$DOCQC_SITE} {
