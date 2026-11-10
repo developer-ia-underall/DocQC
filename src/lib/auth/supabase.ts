@@ -1,6 +1,20 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL;
+const rawUrl = import.meta.env.VITE_SUPABASE_URL;
+
+/**
+ * `VITE_SUPABASE_URL=/` (ou outro caminho relativo) significa "o mesmo endereço da app": o proxy
+ * à frente encaminha /auth/v1, /rest/v1, … para o Supabase. Assim a mesma build serve por IP e
+ * depois pelo domínio, sem recompilar. No servidor (SSR) não há chamadas ao Supabase, por isso
+ * basta um URL absoluto qualquer para o cliente ser criado.
+ */
+function resolveUrl(value: string | undefined): string | undefined {
+  if (!value || !value.startsWith("/")) return value;
+  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  return new URL(value, origin).toString().replace(/\/$/, "");
+}
+
+const url = resolveUrl(rawUrl);
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 /**

@@ -1,0 +1,38 @@
+# Máquina do front: app (Node) + Caddy (HTTPS e proxy para o Supabase).
+# Configuração em deploy/web/.env (copie de .env.example). Arranque: ./deploy/web/deploy.sh
+name: docqc-web
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/web/Dockerfile
+      args:
+        VITE_SUPABASE_URL: /
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:?defina VITE_SUPABASE_PUBLISHABLE_KEY em deploy/web/.env}
+    image: docqc-web:latest
+    restart: unless-stopped
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    environment:
+      DOCQC_SITE: ${DOCQC_SITE:?defina DOCQC_SITE em deploy/web/.env}
+      SUPABASE_UPSTREAM: ${SUPABASE_UPSTREAM:?defina SUPABASE_UPSTREAM em deploy/web/.env}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@underall.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

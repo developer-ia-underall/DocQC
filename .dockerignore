@@ -1,0 +1,14 @@
+node_modules
+.output
+.nitro
+.tanstack
+dist
+dist-spa
+dist-ssr
+.git
+.env
+.env.*
+!.env.example
+deploy/web/.env
+supabase/.temp
+supabase/.branches
