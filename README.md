@@ -6,15 +6,15 @@ Primeira versão gerada no Lovable (motor de análise) e completada à mão (ecr
 
 ## Funcionalidades
 
-| Área | O que faz |
-| --- | --- |
-| **Upload** | Arrastar e largar, colar (⌘V), fila com 2 em paralelo, progresso real por fases, cancelar/repetir, erros claros (tamanho, tipo, PDF corrompido/encriptado). |
-| **Origem** | Motor de regras (`src/lib/origin/rules.ts`) sobre Producer/Creator/Application, XMP, datas, tempo de edição, revisões, C2PA, IPTC. Pontuação 0–100, veredicto e evidências com id de regra. |
-| **Segurança** | PDF: `/JavaScript`, `/OpenAction`, `/AA`, `/Launch`, `/URI` automático, `/SubmitForm`, ficheiros incorporados, XFA, nomes ofuscados (`/J#61vaScript`), objetos em object streams. Office: macros, OLE, ActiveX, DDE, modelos remotos, imagens remotas (pixels de rastreio). ODT e imagens (GPS, poliglotas). |
-| **Entregar** | Reescreve metadados com uma identidade (pessoa + máquina + aplicação + empresa + fuso), opcionalmente remove conteúdo ativo e ligações externas, regenera XMP coerente, e descarrega o mesmo ficheiro. O resultado é reanalisado e guardado como nova versão. |
-| **Versões** | Mesmo ficheiro (SHA-256) é reconhecido; nome/título semelhante cria nova versão; diff de metadados entre versões. |
-| **Biblioteca** | Autores criados a partir dos metadados e identidades; secções, tipografia e extensão típicas; sugestões heurísticas (substituíveis por RAG/fine-tuning). |
-| **UI** | Barra lateral recolhível, ⌘K, navegação `G` + tecla, modo claro/escuro, responsivo, animações com Framer Motion (respeita `prefers-reduced-motion`). |
+| Área           | O que faz                                                                                                                                                                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Upload**     | Arrastar e largar, colar (⌘V), fila com 2 em paralelo, progresso real por fases, cancelar/repetir, erros claros (tamanho, tipo, PDF corrompido/encriptado).                                                                                                                                                  |
+| **Origem**     | Motor de regras (`src/lib/origin/rules.ts`) sobre Producer/Creator/Application, XMP, datas, tempo de edição, revisões, C2PA, IPTC e conteúdo textual. Separa sinais de IA, ferramenta automática, sandbox, humano e adulteração; inclui o estado inconclusivo e evidências com id de regra.                  |
+| **Segurança**  | PDF: `/JavaScript`, `/OpenAction`, `/AA`, `/Launch`, `/URI` automático, `/SubmitForm`, ficheiros incorporados, XFA, nomes ofuscados (`/J#61vaScript`), objetos em object streams. Office: macros, OLE, ActiveX, DDE, modelos remotos, imagens remotas (pixels de rastreio). ODT e imagens (GPS, poliglotas). |
+| **Entregar**   | Reescreve metadados com uma identidade (pessoa + máquina + aplicação + empresa + fuso), opcionalmente remove conteúdo ativo e ligações externas, regenera XMP coerente, e descarrega o mesmo ficheiro. O resultado é reanalisado e guardado como nova versão.                                                |
+| **Versões**    | Mesmo ficheiro (SHA-256) é reconhecido; nome/título semelhante cria nova versão; diff de metadados entre versões.                                                                                                                                                                                            |
+| **Biblioteca** | Autores criados a partir dos metadados e identidades; secções, tipografia e extensão típicas; sugestões heurísticas (substituíveis por RAG/fine-tuning).                                                                                                                                                     |
+| **UI**         | Barra lateral recolhível, ⌘K, navegação `G` + tecla, modo claro/escuro, responsivo, animações com Framer Motion (respeita `prefers-reduced-motion`).                                                                                                                                                         |
 
 ## Como correr
 
@@ -31,10 +31,10 @@ Na primeira visita são criados exemplos reais (gerados no navegador e analisado
 
 Login sem palavra-passe: a pessoa escreve o e-mail e recebe **um código de 6 dígitos e uma ligação** no mesmo e-mail; qualquer um dos dois serve. O registo é aberto (separador **Criar conta**). Novas contas entram como **Utilizador**; a conta `efrancisco@underall.com` nasce **Administrador**. Em **Utilizadores** (barra lateral), o administrador muda o papel de qualquer conta.
 
-| Papel | Pode |
-| --- | --- |
-| Utilizador | Usar a aplicação. |
-| Gestor | Usar a aplicação e ver a lista de contas. |
+| Papel         | Pode                                                                             |
+| ------------- | -------------------------------------------------------------------------------- |
+| Utilizador    | Usar a aplicação.                                                                |
+| Gestor        | Usar a aplicação e ver a lista de contas.                                        |
 | Administrador | Tudo, incluindo alterar papéis. Nunca é possível ficar sem nenhum administrador. |
 
 As regras vivem na base de dados (`supabase/migrations/`): RLS na tabela `profiles` e a função `set_user_role()`, que só aceita pedidos de administradores. Os documentos continuam no IndexedDB do navegador nesta fase.
@@ -57,7 +57,7 @@ Supabase self-hosted ao lado de outra instância existente + front com Caddy (po
    bunx supabase config push    # aplica supabase/config.toml (código de 6 dígitos, modelos de e-mail)
    ```
    Alternativa sem CLI: colar o ficheiro da migração em **SQL Editor** e, em **Authentication → Email Templates**, colar `supabase/templates/magic_link.html` (Magic Link) e `confirmation.html` (Confirm signup).
-4. **URL do site**: em **Authentication → URL Configuration**, `Site URL` = endereço público da app (ex.: `https://docqc.underall.com`). As ligações dos e-mails apontam para `<Site URL>/auth/confirm`. Acrescente `http://localhost:5173` em *Redirect URLs* para testar localmente.
+4. **URL do site**: em **Authentication → URL Configuration**, `Site URL` = endereço público da app (ex.: `https://docqc.underall.com`). As ligações dos e-mails apontam para `<Site URL>/auth/confirm`. Acrescente `http://localhost:5173` em _Redirect URLs_ para testar localmente.
 5. **Código de 6 dígitos**: em **Authentication → Providers → Email**, `Email OTP Length` = 6 (o `config push` já o faz).
 6. **Envio de e-mails (obrigatório em produção)**: o servidor de e-mail incluído no Supabase só envia para membros da equipa do projeto e poucas mensagens por hora. Configure um SMTP próprio em **Authentication → SMTP Settings**, por exemplo [Resend](https://resend.com) (`smtp.resend.com`, porta 465, utilizador `resend`, palavra-passe = API key) ou o SMTP do Microsoft 365/Google Workspace da Underall. Verifique o domínio de envio (SPF/DKIM) para os e-mails não irem para spam.
 7. **Primeiro acesso**: abra a app, **Criar conta** com `efrancisco@underall.com`; a conta fica logo como administrador. Para dar admin automático a outro e-mail no futuro: `insert into public.bootstrap_admins values ('outro@underall.com');`.
@@ -101,6 +101,9 @@ Tudo corre no navegador: os ficheiros são lidos como bytes, nunca abertos nem e
 ## Limites conhecidos
 
 - Os metadados indicam a origem mas não a provam.
+- Uma ferramenta automática não é tratada como prova de conteúdo gerado por IA; C2PA é reportado como declaração, não como assinatura validada.
+- “Inconclusivo” significa ausência de evidência suficiente e não deve ser interpretado como autoria humana.
+- A análise de origem não substitui análise estilométrica, verificação criptográfica de C2PA ou assinaturas digitais.
 - A verificação de segurança é estrutural, não por assinaturas.
 - HEIC: análise sim, reescrita ainda não (converter para JPEG).
 - `.doc`/`.xls` antigos e ficheiros encriptados não são lidos.

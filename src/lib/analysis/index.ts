@@ -104,7 +104,7 @@ export async function analyzeBytes(
     xmpRaw: ex.xmpRaw,
     findings: sortFindings(findings),
     securityState: securityStateOf(findings),
-    origin: evaluateOrigin(ex.origin),
+    origin: evaluateOrigin({ ...ex.origin, metadata: ex.metadata }),
     structure: ex.structure,
     title: ex.title,
     author: ex.author,

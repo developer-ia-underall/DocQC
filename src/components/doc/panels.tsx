@@ -10,6 +10,7 @@ import {
   Wrench,
   Server,
   Sparkles,
+  AlertTriangle,
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ const CAT: Record<Evidence["category"], { label: string; icon: typeof Bot }> = {
   tool: { label: "Ferramenta", icon: Wrench },
   sandbox: { label: "Sandbox", icon: Server },
   human: { label: "Humano", icon: User },
+  tampered: { label: "Adulteração", icon: AlertTriangle },
 };
 
 const VERDICT_TEXT: Record<AnalysisResult["origin"]["verdict"], string> = {
@@ -47,13 +49,19 @@ const VERDICT_TEXT: Record<AnalysisResult["origin"]["verdict"], string> = {
     "Há marcas de ferramentas ou bibliotecas usadas por assistentes de IA ou por geração automática.",
   "Gerado em sandbox de IA":
     "Combinação de bibliotecas de geração com sinais de ambiente de execução (contentor, UTC, autor genérico, sem edição).",
+  "Processado por ferramenta automática":
+    "Foram encontradas assinaturas de uma ferramenta ou biblioteca automática, sem evidência suficiente para atribuir o conteúdo a IA.",
+  "Metadados contraditórios":
+    "Foram encontradas divergências entre camadas ou marcadores explícitos de fixture/adulteração. A origem não é confiável.",
+  Inconclusivo:
+    "Não há evidência suficiente para atribuir a origem a uma pessoa ou a IA. A ausência de sinais não prova autoria humana.",
 };
 
 /* ------------------------------------------- Origem ------------------------------------------ */
 
 export function OriginPanel({ a }: { a: AnalysisResult }) {
   const o = a.origin;
-  const byCat = (["ai", "tool", "sandbox", "human"] as const).map((c) => ({
+  const byCat = (["ai", "tool", "sandbox", "human", "tampered"] as const).map((c) => ({
     c,
     w: o.evidence.filter((e) => e.category === c).reduce((s, e) => s + e.weight, 0),
   }));
@@ -65,6 +73,14 @@ export function OriginPanel({ a }: { a: AnalysisResult }) {
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <VerdictBadge v={o.verdict} />
             <span className="text-[12px] text-muted-foreground">confiança {o.confidence}</span>
+            <span className="text-[12px] text-muted-foreground">
+              proveniência{" "}
+              {o.provenance === "verified"
+                ? "verificada"
+                : o.provenance === "declared"
+                  ? "declarada"
+                  : "não verificada"}
+            </span>
           </div>
           <p className="mt-2 text-[13px] text-foreground/85">{VERDICT_TEXT[o.verdict]}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-3 text-[12px] text-muted-foreground sm:justify-start">

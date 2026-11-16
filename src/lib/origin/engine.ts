@@ -10,12 +10,29 @@ export function evaluateOrigin(input: OriginInput, rules: OriginRule[] = RULES):
   }
   const sum = (c: Evidence["category"]) =>
     evidence.filter((e) => e.category === c).reduce((a, e) => a + e.weight, 0);
-  const score = Math.max(0, Math.min(100, Math.round(evidence.reduce((a, e) => a + e.weight, 0))));
-  const sandbox = sum("sandbox"),
-    tool = sum("tool") + sum("ai");
-  let verdict: Verdict = "Provável origem humana";
-  if (score >= 60 && sandbox >= 30 && tool >= 25) verdict = "Gerado em sandbox de IA";
-  else if (score >= 35) verdict = "Indícios de IA";
+  const signalScores = {
+    ai: sum("ai"),
+    tool: sum("tool"),
+    sandbox: sum("sandbox"),
+    human: sum("human"),
+    tampered: sum("tampered"),
+  };
+  const score = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        signalScores.ai + signalScores.sandbox + signalScores.tampered / 2 - signalScores.human,
+      ),
+    ),
+  );
+  const hasSubstantiveEvidence = evidence.some((e) => e.category !== "tool");
+  let verdict: Verdict = "Inconclusivo";
+  if (signalScores.tampered >= 35) verdict = "Metadados contraditórios";
+  else if (signalScores.ai >= 60 && signalScores.sandbox >= 30) verdict = "Gerado em sandbox de IA";
+  else if (signalScores.ai >= 35) verdict = "Indícios de IA";
+  else if (signalScores.tool >= 30) verdict = "Processado por ferramenta automática";
+  else if (signalScores.human < 0 && hasSubstantiveEvidence) verdict = "Provável origem humana";
   const confidence: Confidence =
     input.metadataCount === 0
       ? "baixa"
@@ -23,5 +40,6 @@ export function evaluateOrigin(input: OriginInput, rules: OriginRule[] = RULES):
         ? "alta"
         : "média";
   evidence.sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight));
-  return { score, verdict, confidence, evidence };
+  const provenance = input.c2pa?.present && input.c2pa.ai ? "declared" : "unverified";
+  return { score, verdict, confidence, evidence, signalScores, provenance };
 }

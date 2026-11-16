@@ -8,7 +8,7 @@ export interface ImageHandle {
   exif: Record<string, unknown>;
 }
 
-export function pngTextChunks(b: Uint8Array): Record<string, string> {
+export async function pngTextChunks(b: Uint8Array): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   if (b[0] !== 0x89) return out;
   let p = 8;
@@ -16,11 +16,30 @@ export function pngTextChunks(b: Uint8Array): Record<string, string> {
   while (p + 8 < b.length) {
     const len = dv.getUint32(p);
     const type = latin1(b.subarray(p + 4, p + 8));
-    if (type === "tEXt" || type === "iTXt") {
+    if (type === "tEXt" || type === "iTXt" || type === "zTXt") {
       const data = b.subarray(p + 8, p + 8 + len);
       const z = data.indexOf(0);
+      if (z < 1) {
+        p += 12 + len;
+        continue;
+      }
       const key = latin1(data.subarray(0, z));
       let val = data.subarray(z + 1);
+      if (type === "zTXt") {
+        // zTXt has a compression method byte; decompression is intentionally
+        // left to the browser's native DecompressionStream when available.
+        if (val[0] === 0 && typeof DecompressionStream !== "undefined") {
+          try {
+            const compressed = new Uint8Array(val.subarray(1));
+            const stream = new Blob([compressed.buffer as ArrayBuffer])
+              .stream()
+              .pipeThrough(new DecompressionStream("deflate"));
+            val = new Uint8Array(await new Response(stream).arrayBuffer());
+          } catch {
+            val = new Uint8Array();
+          }
+        }
+      }
       if (type === "iTXt") {
         let q = 2;
         let zeros = 0;
@@ -109,7 +128,8 @@ export const imageAnalyzer: Analyzer<ImageHandle> = {
       if (ct) md["XMP.xmp:CreatorTool"] = ct;
     }
     if (h.format === "png")
-      for (const [k, v] of Object.entries(pngTextChunks(h.bytes))) md[`PNG.${k}`] = v.slice(0, 300);
+      for (const [k, v] of Object.entries(await pngTextChunks(h.bytes)))
+        md[`PNG.${k}`] = v.slice(0, 300);
     const c2paPresent =
       /jumb[\s\S]{0,40}c2pa|c2pa\.(?:claim|assertions|manifest)/.test(h.raw) ||
       h.raw.includes("caBX");
@@ -183,7 +203,12 @@ export const textAnalyzer: Analyzer<{ text: string }> = {
         "Estrutura.Codificação": "UTF-8",
       },
       structure: { sections: sections.slice(0, 40), fonts: [], words },
-      origin: { kind: "text", hasEmbeddedMetadata: false, metadataCount: 0, allText: "" },
+      origin: {
+        kind: "text",
+        hasEmbeddedMetadata: false,
+        metadataCount: 0,
+        allText: text.slice(0, 100_000),
+      },
     };
   },
   async scan({ text }, opts) {
