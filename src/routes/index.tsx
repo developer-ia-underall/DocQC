@@ -36,13 +36,12 @@ function Overview() {
   const latest = all.map((d) => d.versions[d.versions.length - 1]!).filter(Boolean);
   const versions = all.reduce((a, d) => a + d.versions.length, 0);
   const threats = latest.filter((v) => v.analysis.securityState !== "Seguro").length;
-  const aiShare = latest.length
-    ? Math.round(
-        (latest.filter((v) => v.analysis.origin.verdict !== "Provável origem humana").length /
-          latest.length) *
-          100,
-      )
-    : 0;
+  const aiVersions = latest.filter(
+    (v) =>
+      v.analysis.origin.verdict === "Indícios de IA" ||
+      v.analysis.origin.verdict === "Gerado em sandbox de IA",
+  );
+  const aiShare = latest.length ? Math.round((aiVersions.length / latest.length) * 100) : 0;
   const delivered = all.reduce((a, d) => a + d.versions.filter((v) => v.rewrittenWith).length, 0);
 
   const kpis = [

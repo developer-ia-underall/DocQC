@@ -27,6 +27,19 @@ async function trackingPdf() {
   return doc.save({ useObjectStreams: false });
 }
 
+async function reportPdf(info: Record<string, string>) {
+  const doc = await PDFDocument.create({ updateMetadata: false });
+  const page = doc.addPage();
+  page.drawText("Relatório de operações", { font: await doc.embedFont(StandardFonts.Helvetica) });
+  doc.setTitle("Relatório de operações");
+  const infoRef = doc.context.trailerInfo.Info;
+  const dict = infoRef ? doc.context.lookup(infoRef) : undefined;
+  if (dict && "set" in dict)
+    for (const [k, v] of Object.entries(info))
+      (dict as { set: (key: PDFName, value: unknown) => void }).set(PDFName.of(k), PDFString.of(v));
+  return doc.save({ useObjectStreams: false });
+}
+
 describe("PDF", () => {
   it("flags auto-open tracking and JavaScript as dangerous", async () => {
     const { analysis } = await analyzeBytes(await trackingPdf(), "f.pdf", opts);
@@ -56,6 +69,19 @@ describe("PDF", () => {
 });
 
 describe("OOXML", () => {
+  const humanDocx = () =>
+    makeOoxml("docx", {
+      core: {
+        "dc:creator": "Ana Martins",
+        "cp:lastModifiedBy": "Rui Silva",
+        "cp:revision": "4",
+        "dcterms:created": "2026-11-01T09:00:00Z",
+        "dcterms:modified": "2026-11-01T11:30:00Z",
+      },
+      app: { Application: "Microsoft Office Word", Company: "Acme, Lda." },
+      headings: ["Resumo", "Conclusão"],
+    });
+
   const sandboxDocx = () =>
     makeOoxml("docx", {
       core: {
@@ -72,7 +98,7 @@ describe("OOXML", () => {
 
   it("detects python-docx sandbox output and remote image", async () => {
     const { analysis } = await analyzeBytes(await sandboxDocx(), "r.docx", opts);
-    expect(analysis.origin.verdict).toBe("Processado por ferramenta automática");
+    expect(analysis.origin.verdict).toBe("Gerado em sandbox de IA");
     expect(analysis.findings.some((f) => f.title.startsWith("Imagem remota"))).toBe(true);
     expect(analysis.structure.sections).toEqual(["Sumário", "Riscos"]);
   });
@@ -93,6 +119,12 @@ describe("OOXML", () => {
     expect(analysis.origin.evidence.map((e) => e.ruleId)).not.toContain("sandbox.path");
     expect(analysis.origin.verdict).toBe("Provável origem humana");
   });
+
+  it("keeps a human Word report human when it was reviewed by another person", async () => {
+    const { analysis } = await analyzeBytes(await humanDocx(), "relatorio-humano.docx", opts);
+    expect(analysis.origin.verdict).toBe("Provável origem humana");
+    expect(analysis.origin.verdict).not.toBe("Metadados contraditórios");
+  });
 });
 
 describe("Images", () => {
@@ -103,6 +135,42 @@ describe("Images", () => {
     const { bytes, removed } = stripJpeg(jpeg);
     expect(removed).toBe(2);
     expect(Array.from(bytes)).toEqual([0xff, 0xd8, 0xff, 0xda, 0, 2, 7, 7, 0xff, 0xd9]);
+  });
+});
+
+describe("origin regression fixtures", () => {
+  it("classifies human and automated PDF reports without using generic test words", async () => {
+    const human = await analyzeBytes(
+      await reportPdf({
+        Author: "Ana Martins",
+        Creator: "Microsoft Word",
+        Producer: "Microsoft Word",
+      }),
+      "relatorio-humano.pdf",
+      opts,
+    );
+    const automated = await analyzeBytes(
+      await reportPdf({
+        Author: "root",
+        Creator: "/mnt/data/relatorio-IA.pdf",
+        Producer: "ReportLab",
+      }),
+      "relatorio-IA.pdf",
+      opts,
+    );
+    expect(human.analysis.origin.verdict).toBe("Provável origem humana");
+    expect(automated.analysis.origin.verdict).toBe("Gerado em sandbox de IA");
+  });
+
+  it("does not flag ordinary discussion of AI as an AI disclosure", () => {
+    const result = evaluateOrigin({
+      kind: "text",
+      hasEmbeddedMetadata: false,
+      metadataCount: 0,
+      allText: "A política diz que o conteúdo gerado por IA deve ser revisto.",
+    });
+    expect(result.verdict).toBe("Inconclusivo");
+    expect(result.evidence.map((e) => e.ruleId)).not.toContain("content.ai-disclaimer");
   });
 });
 

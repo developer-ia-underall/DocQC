@@ -33,6 +33,11 @@ export function authorStyle(docs: DocumentRecord[]): AuthorStyle {
   const words = latest.map((v) => v.analysis.structure.words).filter((x): x is number => !!x);
   const avg = (a: number[]) =>
     a.length ? Math.round(a.reduce((s, x) => s + x, 0) / a.length) : null;
+  const classifiable = latest.filter((v) =>
+    ["Provável origem humana", "Indícios de IA", "Gerado em sandbox de IA"].includes(
+      v.analysis.origin.verdict,
+    ),
+  );
   return {
     docCount: docs.length,
     versionCount: docs.reduce((a, d) => a + d.versions.length, 0),
@@ -41,10 +46,11 @@ export function authorStyle(docs: DocumentRecord[]): AuthorStyle {
     avgWords: avg(words),
     sections: tally(latest.flatMap((v) => v.analysis.structure.sections)).slice(0, 10),
     fonts: tally(latest.flatMap((v) => v.analysis.structure.fonts)).slice(0, 6),
-    humanShare: latest.length
+    humanShare: classifiable.length
       ? Math.round(
-          (latest.filter((v) => v.analysis.origin.verdict === "Provável origem humana").length /
-            latest.length) *
+          (classifiable.filter((v) => v.analysis.origin.verdict === "Provável origem humana")
+            .length /
+            classifiable.length) *
             100,
         )
       : 0,

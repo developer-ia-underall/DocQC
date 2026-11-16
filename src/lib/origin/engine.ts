@@ -29,7 +29,8 @@ export function evaluateOrigin(input: OriginInput, rules: OriginRule[] = RULES):
   const hasSubstantiveEvidence = evidence.some((e) => e.category !== "tool");
   let verdict: Verdict = "Inconclusivo";
   if (signalScores.tampered >= 35) verdict = "Metadados contraditórios";
-  else if (signalScores.ai >= 60 && signalScores.sandbox >= 30) verdict = "Gerado em sandbox de IA";
+  else if (signalScores.tool >= 30 && signalScores.sandbox >= 30)
+    verdict = "Gerado em sandbox de IA";
   else if (signalScores.ai >= 35) verdict = "Indícios de IA";
   else if (signalScores.tool >= 30) verdict = "Processado por ferramenta automática";
   else if (signalScores.human < 0 && hasSubstantiveEvidence) verdict = "Provável origem humana";
