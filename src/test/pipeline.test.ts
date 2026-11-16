@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, PDFName, PDFString, StandardFonts } from "pdf-lib";
 import { analyzeBytes } from "@/lib/analysis";
+import { evaluateOrigin } from "@/lib/origin/engine";
 import { rewriteDocument, stripJpeg } from "@/lib/rewrite";
 import { makeOoxml, SEED_PROFILE } from "@/services/seed";
 import { docKey } from "@/services/store";
@@ -71,7 +72,7 @@ describe("OOXML", () => {
 
   it("detects python-docx sandbox output and remote image", async () => {
     const { analysis } = await analyzeBytes(await sandboxDocx(), "r.docx", opts);
-    expect(analysis.origin.verdict).toBe("Gerado em sandbox de IA");
+    expect(analysis.origin.verdict).toBe("Processado por ferramenta automática");
     expect(analysis.findings.some((f) => f.title.startsWith("Imagem remota"))).toBe(true);
     expect(analysis.structure.sections).toEqual(["Sumário", "Riscos"]);
   });
@@ -127,5 +128,47 @@ describe("XMP encoding", () => {
     const { analysis } = await analyzeBytes(out.bytes, out.fileName, opts);
     expect(analysis.metadata["XMP.dc:creator"]).toBe("Eliúde Francisco");
     expect(analysis.metadata["XMP.dc:title"]).toBe("Fatura n.º 1 — teste");
+  });
+});
+
+describe("origin confidence boundaries", () => {
+  it("does not treat a generator library alone as proof of AI", () => {
+    const result = evaluateOrigin({
+      kind: "pdf",
+      producer: "ReportLab",
+      metadata: { "Info.Producer": "ReportLab" },
+      hasEmbeddedMetadata: true,
+      metadataCount: 1,
+      allText: "ReportLab",
+    });
+    expect(result.verdict).toBe("Processado por ferramenta automática");
+    expect(result.signalScores.ai).toBe(0);
+    expect(result.signalScores.tool).toBeGreaterThan(0);
+  });
+
+  it("surfaces metadata contradictions as tampering instead of human origin", () => {
+    const result = evaluateOrigin({
+      kind: "pdf",
+      metadata: {
+        "Info.Author": "Ana",
+        "XMP.dc:creator": "Outro autor",
+      },
+      author: "Ana",
+      hasEmbeddedMetadata: true,
+      metadataCount: 2,
+      allText: "Ana Outro autor",
+    });
+    expect(result.verdict).toBe("Metadados contraditórios");
+    expect(result.signalScores.tampered).toBeGreaterThanOrEqual(35);
+  });
+
+  it("detects explicit AI disclosure in text without treating missing metadata as human", async () => {
+    const { analysis } = await analyzeBytes(
+      new TextEncoder().encode("Como modelo de linguagem, não posso confirmar esta afirmação."),
+      "nota.txt",
+      opts,
+    );
+    expect(analysis.origin.verdict).toBe("Indícios de IA");
+    expect(analysis.origin.confidence).toBe("baixa");
   });
 });

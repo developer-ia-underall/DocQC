@@ -1,7 +1,13 @@
 export type DocKind = "pdf" | "docx" | "xlsx" | "pptx" | "odt" | "image" | "text";
 export type Severity = "crítico" | "alto" | "médio" | "info";
 export type SecurityState = "Seguro" | "Atenção" | "Perigoso";
-export type Verdict = "Provável origem humana" | "Indícios de IA" | "Gerado em sandbox de IA";
+export type Verdict =
+  | "Provável origem humana"
+  | "Indícios de IA"
+  | "Gerado em sandbox de IA"
+  | "Processado por ferramenta automática"
+  | "Metadados contraditórios"
+  | "Inconclusivo";
 export type Confidence = "baixa" | "média" | "alta";
 
 export interface Finding {
@@ -14,7 +20,7 @@ export interface Finding {
 
 export interface Evidence {
   ruleId: string;
-  category: "ai" | "tool" | "sandbox" | "human";
+  category: "ai" | "tool" | "sandbox" | "human" | "tampered";
   weight: number;
   evidence: string;
 }
@@ -24,6 +30,14 @@ export interface OriginResult {
   verdict: Verdict;
   confidence: Confidence;
   evidence: Evidence[];
+  signalScores: {
+    ai: number;
+    tool: number;
+    sandbox: number;
+    human: number;
+    tampered: number;
+  };
+  provenance: "verified" | "declared" | "unverified";
 }
 
 export interface DocStructure {

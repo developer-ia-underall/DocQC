@@ -13,6 +13,7 @@ export class AnalysisError extends Error {
 
 export interface OriginInput {
   kind: DocKind;
+  metadata?: Record<string, string> | undefined;
   author?: string | undefined;
   creator?: string | undefined;
   lastModifiedBy?: string | undefined;

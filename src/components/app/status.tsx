@@ -46,7 +46,13 @@ export function Pill({
 }
 
 export const verdictTone = (v: Verdict): Tone =>
-  v === "Gerado em sandbox de IA" ? "danger" : v === "Indícios de IA" ? "warning" : "safe";
+  v === "Gerado em sandbox de IA" || v === "Metadados contraditórios"
+    ? "danger"
+    : v === "Indícios de IA" || v === "Processado por ferramenta automática"
+      ? "warning"
+      : v === "Inconclusivo"
+        ? "neutral"
+        : "safe";
 export const securityTone = (s: SecurityState): Tone =>
   s === "Perigoso" ? "danger" : s === "Atenção" ? "warning" : "safe";
 export const severityTone = (s: Severity): Tone =>
@@ -59,7 +65,13 @@ export const VerdictBadge = ({ v, short }: { v: Verdict; short?: boolean }) => (
         ? "Humana"
         : v === "Indícios de IA"
           ? "Indícios de IA"
-          : "Sandbox IA"
+          : v === "Gerado em sandbox de IA"
+            ? "Sandbox IA"
+            : v === "Processado por ferramenta automática"
+              ? "Automação"
+              : v === "Metadados contraditórios"
+                ? "Contraditórios"
+                : "Inconclusivo"
       : v}
   </Pill>
 );

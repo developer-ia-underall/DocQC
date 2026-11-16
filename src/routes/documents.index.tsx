@@ -87,6 +87,9 @@ function DocumentsPage() {
             <option>Provável origem humana</option>
             <option>Indícios de IA</option>
             <option>Gerado em sandbox de IA</option>
+            <option>Processado por ferramenta automática</option>
+            <option>Metadados contraditórios</option>
+            <option>Inconclusivo</option>
           </NativeSelect>
           <NativeSelect
             value={sec}
