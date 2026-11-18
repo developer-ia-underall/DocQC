@@ -10,11 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContratosRouteImport } from './routes/contratos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfilesRouteImport } from './routes/profiles'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as ApiNifRouteImport } from './routes/api.nif'
 import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
@@ -24,6 +26,11 @@ import { Route as LibraryAuthorIdRouteImport } from './routes/library.$authorId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContratosRoute = ContratosRouteImport.update({
+  id: '/contratos',
+  path: '/contratos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -49,6 +56,11 @@ const UploadRoute = UploadRouteImport.update({
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNifRoute = ApiNifRouteImport.update({
+  id: '/api/nif',
+  path: '/api/nif',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
@@ -79,11 +91,13 @@ const LibraryAuthorIdRoute = LibraryAuthorIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contratos': typeof ContratosRoute
   '/login': typeof LoginRoute
   '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/nif': typeof ApiNifRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/library/$authorId': typeof LibraryAuthorIdRoute
@@ -92,11 +106,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contratos': typeof ContratosRoute
   '/login': typeof LoginRoute
   '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/nif': typeof ApiNifRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/library/$authorId': typeof LibraryAuthorIdRoute
@@ -106,11 +122,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/contratos': typeof ContratosRoute
   '/login': typeof LoginRoute
   '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/nif': typeof ApiNifRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/library/$authorId': typeof LibraryAuthorIdRoute
@@ -121,11 +139,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/contratos'
     | '/login'
     | '/profiles'
     | '/settings'
     | '/upload'
     | '/admin/users'
+    | '/api/nif'
     | '/auth/confirm'
     | '/documents/$id'
     | '/library/$authorId'
@@ -134,11 +154,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/contratos'
     | '/login'
     | '/profiles'
     | '/settings'
     | '/upload'
     | '/admin/users'
+    | '/api/nif'
     | '/auth/confirm'
     | '/documents/$id'
     | '/library/$authorId'
@@ -147,11 +169,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/contratos'
     | '/login'
     | '/profiles'
     | '/settings'
     | '/upload'
     | '/admin/users'
+    | '/api/nif'
     | '/auth/confirm'
     | '/documents/$id'
     | '/library/$authorId'
@@ -161,11 +185,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ContratosRoute: typeof ContratosRoute
   LoginRoute: typeof LoginRoute
   ProfilesRoute: typeof ProfilesRoute
   SettingsRoute: typeof SettingsRoute
   UploadRoute: typeof UploadRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  ApiNifRoute: typeof ApiNifRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   DocumentsIdRoute: typeof DocumentsIdRoute
   LibraryAuthorIdRoute: typeof LibraryAuthorIdRoute
@@ -180,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contratos': {
+      id: '/contratos'
+      path: '/contratos'
+      fullPath: '/contratos'
+      preLoaderRoute: typeof ContratosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -215,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/nif': {
+      id: '/api/nif'
+      path: '/api/nif'
+      fullPath: '/api/nif'
+      preLoaderRoute: typeof ApiNifRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/confirm': {
@@ -257,11 +297,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ContratosRoute: ContratosRoute,
   LoginRoute: LoginRoute,
   ProfilesRoute: ProfilesRoute,
   SettingsRoute: SettingsRoute,
   UploadRoute: UploadRoute,
   AdminUsersRoute: AdminUsersRoute,
+  ApiNifRoute: ApiNifRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   DocumentsIdRoute: DocumentsIdRoute,
   LibraryAuthorIdRoute: LibraryAuthorIdRoute,

@@ -14,7 +14,28 @@ Primeira versão gerada no Lovable (motor de análise) e completada à mão (ecr
 | **Entregar** | Reescreve metadados com uma identidade (pessoa + máquina + aplicação + empresa + fuso), opcionalmente remove conteúdo ativo e ligações externas, regenera XMP coerente, e descarrega o mesmo ficheiro. O resultado é reanalisado e guardado como nova versão. |
 | **Versões** | Mesmo ficheiro (SHA-256) é reconhecido; nome/título semelhante cria nova versão; diff de metadados entre versões. |
 | **Biblioteca** | Autores criados a partir dos metadados e identidades; secções, tipografia e extensão típicas; sugestões heurísticas (substituíveis por RAG/fine-tuning). |
+| **Contratos (BI)** | Lê Bilhetes de Identidade (PDF/JPG/PNG) com OCR no navegador, consulta o NIF no Portal do Contribuinte, gera o código de cada contrato e preenche os modelos Word (.docx) num .zip com o resumo .xlsx. Ver [Contratos (BI)](#contratos-bi). |
 | **UI** | Barra lateral recolhível, ⌘K, navegação `G` + tecla, modo claro/escuro, responsivo, animações com Framer Motion (respeita `prefers-reduced-motion`). |
+
+## Contratos (BI)
+
+Módulo em `/contratos` (antiga ferramenta *contratos-bi*). Os BI são lidos no navegador (Tesseract em `public/contratos/`, pdf.js do DocQC); as imagens não saem do computador.
+
+- **Código do contrato**: `{TIPO}-{PROV}-{MUN}-{FUNC}-{SEQ}.{SUBSEQ}/{ANO}/{ORDEM}`, com as siglas da folha «Províncias e Municípios_Siglas-contrato» do RH (`src/lib/contratos/dados/municipios.ts`). A ordem 01, 02… é alfabética dentro do mesmo município e função.
+- **NIF**: com o BI lido, o n.º do BI é consultado no Portal do Contribuinte do MINFIN através de `GET /api/nif?bi=…` (`src/routes/api.nif.ts`), porque o navegador não pode falar diretamente com o portal. Precisa do runtime Node (Vercel ou `node-server`). Desliga-se nas definições do módulo.
+- **Modelos e definições**: cada pessoa carrega os modelos .docx (Brigadista, Ponto Focal) em *Definições e modelos*; ficam guardados no navegador (`localStorage`). A lista de pessoas fica só na memória da página.
+- Marcadores do modelo: `{{CODIGO}}` `{{NOME}}` `{{MORADA}}` `{{BI}}` `{{EMITIDO}}` `{{VALIDO}}` `{{LOCAL_DATA}}` e, em alternativa a MORADA, `{{RESIDENCIA}}` `{{CASA}}` `{{BAIRRO}}` `{{MUNICIPIO}}`.
+
+## Vercel
+
+O repositório está ligado a dois projetos Vercel:
+
+| Projeto | Root Directory | O que publica |
+| --- | --- | --- |
+| `docqc` | `/` | A app (SSR). `vercel.json` compila com `NITRO_PRESET=vercel` e bun 1.4 (o `bun.lock` é da versão 1.4). |
+| `contratos-bi` | `deploy/vercel-contratos-bi` | Só redireciona o link antigo `contratos-bi.vercel.app` para `/contratos`. |
+
+Sem `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` nas variáveis do projeto `docqc`, a app corre em modo local sem login. Com Supabase na nuvem, defina as duas variáveis (o `/` do alojamento próprio não serve na Vercel, que não tem o proxy do Caddy) e acrescente o endereço da Vercel em *Authentication → URL Configuration*.
 
 ## Como correr
 

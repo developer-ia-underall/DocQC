@@ -18,6 +18,7 @@ import {
   Check,
   Users,
   LogOut,
+  IdCard,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { ROLE_LABEL, atLeast } from "@/lib/auth/roles";
@@ -59,6 +60,7 @@ export const NAV = [
   { to: "/upload", label: "Carregar", icon: UploadCloud, key: "u" },
   { to: "/library", label: "Biblioteca de autores", icon: Library, key: "b" },
   { to: "/profiles", label: "Identidades", icon: Fingerprint, key: "i" },
+  { to: "/contratos", label: "Contratos (BI)", icon: IdCard, key: "c" },
   { to: "/settings", label: "Definições", icon: Settings, key: "s" },
 ] as const;
 
