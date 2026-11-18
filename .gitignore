@@ -28,3 +28,6 @@ dist-spa
 supabase/.branches
 supabase/.temp
 .env
+
+# Vercel (build local e ligação do projeto)
+.vercel

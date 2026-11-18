@@ -6,7 +6,17 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi", "src/routeTree.gen.ts"] },
+  {
+    ignores: [
+      "dist",
+      "dist-spa",
+      ".output",
+      ".vinxi",
+      ".vercel",
+      "public/contratos",
+      "src/routeTree.gen.ts",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -17,6 +27,11 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  {
+    // Módulo Contratos (BI): lógica portada de JavaScript, sem tipos (ver cabeçalho de cada ficheiro).
+    files: ["src/lib/contratos/**/*.ts"],
+    rules: { "@typescript-eslint/ban-ts-comment": "off" },
   },
   eslintPluginPrettier,
 );

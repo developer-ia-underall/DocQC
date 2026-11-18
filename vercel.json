@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npx --yes bun@1.4 install --frozen-lockfile",
+  "buildCommand": "NITRO_PRESET=vercel npx --yes bun@1.4 run build"
+}
